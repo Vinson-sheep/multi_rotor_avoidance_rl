@@ -1,0 +1,15 @@
+<launch>
+    <arg name="fcu_url" default="udp://:24540@localhost:34580"/>
+    <arg name="respawn_mavros" default="false"/>
+    <!-- MAVROS -->
+    <group ns="iris_0">
+         <node pkg="mavros" type="mavros_node" name="mavros" output="screen" required="true" >
+            <param name="fcu_url" value="$(arg fcu_url)" />
+            <param name="gcs_url" value="" />
+            <param name="target_system_id" value="1" />
+            <param name="target_component_id" value="1" />
+            <rosparam command="load" file="$(find rdpg_local_planner)/launch/px4_pluginlists.yaml" />
+            <rosparam command="load" file="$(find rdpg_local_planner)/launch/px4_config.yaml" />
+        </node>
+    </group>
+</launch>
