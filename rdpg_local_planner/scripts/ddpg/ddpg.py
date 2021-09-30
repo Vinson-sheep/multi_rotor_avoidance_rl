@@ -93,16 +93,17 @@ class Agent(object):
         
         samples = random.sample(self.buffer, self.batch_size)
 
-        s0, a0, r1, s1 = zip(*samples)
+        s0, a0, r1, s1, done = zip(*samples)
 
         s0 = torch.tensor(s0, dtype=torch.float).cuda()
         a0 = torch.tensor(a0, dtype=torch.float).cuda()
         r1 = torch.tensor(r1, dtype=torch.float).view(self.batch_size,-1).cuda()
         s1 = torch.tensor(s1, dtype=torch.float).cuda()
+        done = torch.tensor(done, dtype=torch.float).cuda().view(self.batch_size,-1).cuda()
 
         def critic_learn():
             a1 = self.actor_target(s1).detach()
-            y_true = r1 + self.gamma * self.critic_target(s1, a1).detach()
+            y_true = r1 + self.gamma * self.critic_target(s1, a1).mul(1-done).detach()
             
             y_pred = self.critic(s0, a0)
             

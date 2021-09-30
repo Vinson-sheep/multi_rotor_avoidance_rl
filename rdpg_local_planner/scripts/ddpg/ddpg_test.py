@@ -67,7 +67,7 @@ if __name__ == '__main__':
 
             begin_time = rospy.Time.now()
             s1, r1, done = env.step(0.1, a0[0], a0[1], a0[2])
-            agent.put(s0, a0, r1, s1)
+            agent.put(s0, a0, r1, s1, done)
             end_time = rospy.Time.now()
 
             # print("step time:", (end_time - begin_time).to_sec)

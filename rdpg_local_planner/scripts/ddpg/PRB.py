@@ -156,33 +156,33 @@ class PrioritizedReplayBuffer:
         print("priority memory length is %s", len(self.memory))
         self.memory.append([cur_state, action, reward, new_state, done])
 
-    def _sample_proportional(self, batch_size): # 没有用上
-        """Sample indices based on proportional."""
-        # indices = []
-        # sum_tree_batch = self.sum_tree[0:batch_size]
-        # p_total = np.sum(sum_tree_batch) #self.sum_tree.sum(0, batch_size - 1)
-        # segment = p_total / batch_size
+    # def _sample_proportional(self, batch_size): # 没有用上
+    #     """Sample indices based on proportional."""
+    #     # indices = []
+    #     # sum_tree_batch = self.sum_tree[0:batch_size]
+    #     # p_total = np.sum(sum_tree_batch) #self.sum_tree.sum(0, batch_size - 1)
+    #     # segment = p_total / batch_size
 
-        probility_total = np.sum(self.sum_tree)
-        probility_tree = self.sum_tree/probility_total
+    #     probility_total = np.sum(self.sum_tree)
+    #     probility_tree = self.sum_tree/probility_total
 
-        start_time = time.time()
-        length_memory = len(self.memory)
+    #     start_time = time.time()
+    #     length_memory = len(self.memory)
 
-        sampled_index  = np.random.choice(length_memory, batch_size, replace=False, p=probility_tree[0:length_memory])
+    #     sampled_index  = np.random.choice(length_memory, batch_size, replace=False, p=probility_tree[0:length_memory])
 
-        # a = np.amin(self.sum_tree[0:len(self.memory)])
-        # b = np.amax(self.sum_tree[0:len(self.memory)])
+    #     # a = np.amin(self.sum_tree[0:len(self.memory)])
+    #     # b = np.amax(self.sum_tree[0:len(self.memory)])
 
-        # for i in range(batch_size):
-        #     upperbound = random.uniform(a, b)
-        #     idx = retrieve(self.sum_tree[0:len(self.memory)], upperbound) 
-        #     indices.append(idx)
+    #     # for i in range(batch_size):
+    #     #     upperbound = random.uniform(a, b)
+    #     #     idx = retrieve(self.sum_tree[0:len(self.memory)], upperbound) 
+    #     #     indices.append(idx)
 
-        end_time = time.time()
-        print("retrieve time is %s", (end_time - start_time))
-        print("self.memory length is %s", len(self.memory))
-        return sampled_index
+    #     end_time = time.time()
+    #     print("retrieve time is %s", (end_time - start_time))
+    #     print("self.memory length is %s", len(self.memory))
+    #     return sampled_index
 
     def sample(self, beta, batch_size):  # self.sum_tree and self.memory must match
         self.batch_size = batch_size

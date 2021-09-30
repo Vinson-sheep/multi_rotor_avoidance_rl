@@ -161,6 +161,7 @@ catkin_install_python(PROGRAMS
   scripts/ddpg/laser_filter_downsample.py
   scripts/ddpg/ddpg.py
   scripts/ddpg/ddpg_test.py
+  scripts/ddpg/prioritized_replay_buffer.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
