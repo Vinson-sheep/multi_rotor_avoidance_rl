@@ -93,7 +93,7 @@ if __name__ == '__main__':
     #     step_count = r[-1]
 
 
-    plotTimer = rospy.Timer(rospy.Duration(60), plotCB)
+    # plotTimer = rospy.Timer(rospy.Duration(60), plotCB)
     
 
     params = {
@@ -124,16 +124,26 @@ if __name__ == '__main__':
 
             a0 = agent.act(s0)
 
+            # if epsilon > np.random.random():
+            #     a0[0] += np.random.random()*0.4
+            #     a0[1] += (np.random.random()-0.5)*0.5
+            #     a0[2] += (np.random.random()-0.5)*0.4
+
+            #     a0[0] = limit(a0[0], 1.0, 0.0)
+            #     a0[1] = limit(a0[1], 1.0, -1.0)
+            #     a0[2] = limit(a0[2], 1.0, -1.0)
+
+
             if epsilon > np.random.random():
                 a0[0] += np.random.random()*0.4
-                a0[1] += (np.random.random()-0.5)*0.5
-                a0[2] += (np.random.random()-0.5)*0.4
+                a0[1] = 0
+                a0[2] = s0[-1]
 
                 a0[0] = limit(a0[0], 1.0, 0.0)
                 a0[1] = limit(a0[1], 1.0, -1.0)
                 a0[2] = limit(a0[2], 1.0, -1.0)
 
-            epsilon *= epsilon_decay
+            epsilon = max(epsilon_decay*epsilon, 0.10)
             
 
             print("eps = ", epsilon)
@@ -161,6 +171,56 @@ if __name__ == '__main__':
 
         x.append(episode)
         y.append(episode_reward)
+
+        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/step.mat',{'data': s},True,'5', False, False,'row')
+        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/reward.mat',{'data': r},True,'5', False, False,'row')
+        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/q_value.mat',{'data': q},True,'5', False, False,'row')
+        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/episode.mat',{'data': x},True,'5', False, False,'row')
+        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/total_reward.mat',{'data': y},True,'5', False, False,'row')
+
+        # plot
+        viz.line(
+            y,
+            x,
+            win="gazebo1",
+            name="line1",
+            update=None,
+            opts={
+                'showlegend': True,
+                'title': "reward-episode",
+                'xlabel': "episode",
+                'ylabel': "reward",
+            },
+        )
+        viz.line(
+            r,
+            s,
+            win="gazebo2",
+            name="line2",
+            update=None,
+            opts={
+                'showlegend': True,
+                'title': "reward-step",
+                'xlabel': "step",
+                'ylabel': "reward",
+            },
+        )
+        viz.line(
+            q,
+            s,
+            win="gazebo3",
+            name="line3",
+            update=None,
+            opts={
+                'showlegend': True,
+                'title': "q_value-step",
+                'xlabel': "step",
+                'ylabel': "Q value",
+            },
+        )
+
+        # save model
+        agent.save_data()
 
     rospy.spin()
 

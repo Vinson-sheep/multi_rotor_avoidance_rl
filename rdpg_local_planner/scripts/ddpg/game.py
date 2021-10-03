@@ -10,7 +10,7 @@ from rospy.rostime import Duration
 from std_msgs.msg import String
 from std_srvs.srv import Empty, EmptyRequest, EmptyResponse
 from sensor_msgs.msg import LaserScan
-from geometry_msgs.msg import Twist, Pose, PoseStamped, TwistStamped
+from geometry_msgs.msg import Twist, Pose, PoseStamped, TwistStamped, TwistWithCovarianceStamped
 from mavros_msgs.msg import PositionTarget, State
 from mavros_msgs.srv import CommandBool, CommandBoolRequest, CommandBoolResponse
 from mavros_msgs.srv import SetMode, SetModeRequest, SetModeResponse
@@ -18,7 +18,6 @@ from nav_msgs.msg import Odometry
 from gazebo_msgs.srv import SetModelState, GetModelState, GetModelStateRequest, GetModelStateResponse
 from gazebo_msgs.msg import ModelState 
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
-
 
 import random
 import numpy as np
@@ -40,7 +39,7 @@ class Game:
         self.scan = LaserScan()
         self.body_v = TwistStamped()
 
-        self.crash_limit = 0.52
+        self.crash_limit = 0.55
 
         self.start_flag = False
 
@@ -68,7 +67,8 @@ class Game:
 
         # publisher
         self.ctrPub = rospy.Publisher(self.model_name + "/mavros/setpoint_raw/local", PositionTarget, queue_size=1)
-        self.visionPub = rospy.Publisher(self.model_name + "/mavros/vision_pose/pose", PoseStamped, queue_size=2)
+        self.visionPub = rospy.Publisher(self.model_name + "/mavros/vision_pose/pose", PoseStamped, queue_size=1)
+        self.visionVPub = rospy.Publisher(self.model_name + "/mavros/vision_speed/speed_twist_cov", TwistWithCovarianceStamped, queue_size=1)
 
 
         # service client
@@ -80,7 +80,7 @@ class Game:
 
         # Timer
         self.holdTimer = rospy.Timer(rospy.Duration(0.05), self._hold)
-        self.visionTimer = rospy.Timer(rospy.Duration(0.05), self._vision)
+        self.visionTimer = rospy.Timer(rospy.Duration(0.02), self._vision)
 
     def reset(self):
         """
@@ -90,7 +90,7 @@ class Game:
         # stop in place
         print("stoping.")
         # while not self._is_hold():
-        for i in range(20):
+        for i in range(10):
             self._send_velocity_cmd(0, 0, 0)
             self.hold_flag = False
             self.rate.sleep()
@@ -102,8 +102,8 @@ class Game:
             # calculate the vx and vy
             alpha = self.scan.angle_min + self.scan.angle_increment * self.crash_index
 
-            vx = -math.cos(alpha) * 0.3
-            vy = -math.sin(alpha) * 0.3 
+            vx = -math.cos(alpha) * 0.2
+            vy = -math.sin(alpha) * 0.2 
             self._send_velocity_cmd(vx, vy, 0)
             self.hold_flag = False
             self.rate.sleep()
@@ -470,11 +470,17 @@ class Game:
         self.pose = resp.pose
         self.twist = resp.twist
 
-        # send vision
+        # send position vision
         msg = PoseStamped()
         msg.header.stamp = rospy.Time.now()
         msg.pose = self.pose
         self.visionPub.publish(msg)
+
+        # send velocity vision
+        msg = TwistWithCovarianceStamped()
+        msg.header.stamp = rospy.Time.now()
+        msg.twist.twist = self.twist
+        self.visionVPub.publish(msg)
 
 
     def _send_velocity_cmd(self, vx, vy, yaw_rate):
