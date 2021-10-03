@@ -11,10 +11,8 @@ class PrioritizedReplayBuffer:
         """
         
         """
-        # self.buffer_size = 1000000
-        self.buffer_size = 10
-        self.batch_size = 3
-        # self.batch_size = 512
+        self.buffer_size = 1000000
+        self.batch_size = 256
 
         self.memory = deque(maxlen=self.buffer_size)
         self.priority_tree = deque(maxlen=self.buffer_size)
@@ -63,6 +61,8 @@ class PrioritizedReplayBuffer:
 if __name__ == '__main__':
     test_buffer = PrioritizedReplayBuffer()
     
+    print("sample available:", test_buffer.sample_available())
+
     for i in range(200):
         test_buffer.add(i, float(i)/200.0)
 
@@ -77,6 +77,8 @@ if __name__ == '__main__':
 
     print(test_buffer.memory)
     print(test_buffer.priority_tree)
+
+    print("sample available:", test_buffer.sample_available())
 
 
 

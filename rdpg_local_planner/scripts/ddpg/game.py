@@ -87,8 +87,32 @@ class Game:
             TODO
         """
 
-        # stop
+        # stop in place
+        print("stoping.")
+        # while not self._is_hold():
         for i in range(20):
+            self._send_velocity_cmd(0, 0, 0)
+            self.hold_flag = False
+            self.rate.sleep()
+
+        # go backward with low velocty
+        print("go backward.")
+        self.flag, _, self.crash_index = self.is_crashed()
+        while self.flag == True:
+            # calculate the vx and vy
+            alpha = self.scan.angle_min + self.scan.angle_increment * self.crash_index
+
+            vx = -math.cos(alpha) * 0.3
+            vy = -math.sin(alpha) * 0.3 
+            self._send_velocity_cmd(vx, vy, 0)
+            self.hold_flag = False
+            self.rate.sleep()
+            self.flag, _, self.crash_index = self.is_crashed()
+
+            
+
+        # stop in place
+        while not self._is_hold():
             self._send_velocity_cmd(0, 0, 0)
             self.hold_flag = False
             self.rate.sleep()
@@ -275,18 +299,24 @@ class Game:
     def is_crashed(self):
         """
             determine if the uav is crashed.
+            return:
+                - True if it was crashed.
+                - crash reward
+                - relative laser index (to check the direction)
         """
         self.laser_crashed_flag = False
         self.laser_crashed_reward = 0
+        self.crash_index = -1
 
         for i in range(len(self.scan.ranges)):
             if self.scan.ranges[i] < 2*self.crash_limit:
-                self.laser_crashed_reward = -80
+                self.laser_crashed_reward = - 10
             if self.scan.ranges[i] < self.crash_limit:
-                self.laser_crashed_reward = -100
+                self.laser_crashed_reward = - 40
                 self.laser_crashed_flag = True
+                self.crash_index = i
                 break
-        return self.laser_crashed_flag, self.laser_crashed_reward
+        return self.laser_crashed_flag, self.laser_crashed_reward, self.crash_index
 
 
     def step(self, time_step=0.1, vx=0.1, vy=0.1, yaw_rate=0.1):
@@ -302,15 +332,20 @@ class Game:
         # send control command for time_step period
         time = rospy.Time.now()
         while (rospy.Time.now() - time) < Duration(time_step):
+
             self._send_velocity_cmd(vx, vy, yaw_rate)
             self.hold_flag = False
+
+            crash_indicator, _, _ = self.is_crashed()
+            if crash_indicator == True:
+                break
 
         cur_pos_x_uav = self.pose.position.x
         cur_pos_y_uav = self.pose.position.y
         cur_distance = math.sqrt((self.target_x - cur_pos_x_uav)**2 + (self.target_y - cur_pos_y_uav)**2)
         
         # distance reward
-        distance_reward = 10.0*(last_distance - cur_distance)
+        distance_reward = 20.0*(last_distance - cur_distance)
 
         self.done = False
 
@@ -321,29 +356,29 @@ class Game:
             self.done = True
 
         # crash reward
-        crash_indicator, crash_reward = self.is_crashed()
+        crash_indicator, crash_reward, _ = self.is_crashed()
         if crash_indicator == True:
             self.done = True
 
         # laser reward
         state = np.array(self.scan.ranges) / float(self.scan.range_max)
         # print(state)
-        laser_reward = 0.3*(sum(state) - len(state))
+        laser_reward = 0.1*(sum(state) - len(state))
 
         # linear punish reward
         self.linear_punish_reward_x = 0
         self.linear_punish_reward_y = 0
 
         if self.body_v.twist.linear.x < 0.2:
-            self.linear_punish_reward_x = -2
+            self.linear_punish_reward_x = -1
 
         # angular punish reward
         self.angular_punish_reward = 0
 
-        if self.body_v.twist.angular.z < -0.8:
-            self.angular_punish_reward = -1
-        if self.body_v.twist.angular.z > 0.8:
-            self.angular_punish_reward = -1
+        if self.body_v.twist.angular.z < -0.7:
+            self.angular_punish_reward = -0.5
+        if self.body_v.twist.angular.z > 0.7:
+            self.angular_punish_reward = -0.5
 
         print("distance_reward: ", distance_reward, " arrive_reward: ", self.arrive_reward,
                 " crash reward: ", crash_reward, " laser reward: ", laser_reward, " linear punish reward x:", 

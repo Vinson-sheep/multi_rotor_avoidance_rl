@@ -22,7 +22,7 @@ class laser_filter_downsample:
         pub_msg.header.frame_id = msg.header.frame_id
         pub_msg.angle_max = msg.angle_max
         pub_msg.angle_min = msg.angle_min
-        pub_msg.angle_increment = 2.0*msg.angle_max/72
+        pub_msg.angle_increment = 2.0*msg.angle_max/72.0
         pub_msg.time_increment = msg.time_increment
         pub_msg.scan_time = msg.scan_time
         pub_msg.range_max = 8.0

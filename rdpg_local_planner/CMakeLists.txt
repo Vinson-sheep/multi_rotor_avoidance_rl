@@ -156,11 +156,9 @@ include_directories(
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS
-  scripts/ddpg/game.py
   scripts/ddpg/test.py
   scripts/ddpg/laser_filter_downsample.py
-  scripts/ddpg/ddpg.py
-  scripts/ddpg/ddpg_test.py
+  scripts/ddpg/ddpg_test_PER.py
   scripts/ddpg/prioritized_replay_buffer.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

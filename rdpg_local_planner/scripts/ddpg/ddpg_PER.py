@@ -13,6 +13,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from prioritized_replay_buffer import PrioritizedReplayBuffer
+import os
 
 class Actor(nn.Module):
     def __init__(self):
@@ -72,10 +74,21 @@ class Agent(object):
         self.critic_target = Critic().cuda()
         self.actor_optim = optim.Adam(self.actor.parameters(), lr = self.actor_lr)
         self.critic_optim = optim.Adam(self.critic.parameters(), lr = self.critic_lr)
-        self.buffer = []
+        self.buffer = PrioritizedReplayBuffer()
         
+        # self.load_model()
+
+        # load and save
+        self.actor_load_url = os.path.dirname(os.path.realpath(__file__)) + "/actor_model.pkl"
+        self.critic_load_url = os.path.dirname(os.path.realpath(__file__)) + "/critic_model.pkl"
+        self.actor_save_url = os.path.dirname(os.path.realpath(__file__)) + "/actor_model.pkl"
+        self.critic_save_url = os.path.dirname(os.path.realpath(__file__)) + "/critic_model.pkl"
+
+        # self.load_model()
+
         self.actor_target.load_state_dict(self.actor.state_dict())
         self.critic_target.load_state_dict(self.critic.state_dict())
+
         
     def act(self, s0):
         s0 = torch.tensor(s0, dtype=torch.float).cuda().unsqueeze(0)
@@ -83,15 +96,36 @@ class Agent(object):
         return a0
     
     def put(self, *transition): 
-        if len(self.buffer)== self.capacity:
-            self.buffer.pop(0)
-        self.buffer.append(transition)
-    
+        """
+        return Q_value of s0, a0
+        """
+
+        s0, a0, r1, s1, done = transition
+
+        s0 = torch.tensor(s0, dtype=torch.float).cuda().unsqueeze(0)
+        a0 = torch.tensor(a0, dtype=torch.float).cuda().unsqueeze(0)
+        r1 = torch.tensor(r1, dtype=torch.float).view(1,-1).cuda()
+        s1 = torch.tensor(s1, dtype=torch.float).cuda().unsqueeze(0)
+        done = torch.tensor(done, dtype=torch.float).cuda().view(1,-1).cuda()
+
+        a1 = self.actor_target(s1).detach()
+        y_true = r1 + self.gamma * self.critic_target(s1, a1).mul(1-done).detach()
+        y_pred = self.critic_target(s0, a0).detach()
+
+        loss_fn = nn.MSELoss()
+        loss = loss_fn(y_pred, y_true).detach()
+
+        priority = (loss.item())**0.1
+
+        self.buffer.add(transition, priority)
+
+        return y_pred.cpu().item()
+
     def learn(self):
-        if len(self.buffer) < self.batch_size:
-            return 
-        
-        samples = random.sample(self.buffer, self.batch_size)
+        if not self.buffer.sample_available():
+            return
+
+        samples, indices = self.buffer.sample()
 
         s0, a0, r1, s1, done = zip(*samples)
 
@@ -112,6 +146,10 @@ class Agent(object):
             self.critic_optim.zero_grad()
             loss.backward()
             self.critic_optim.step()
+
+            # update priorities
+            priorities = (((y_true - y_pred).detach()**2)**0.1).cpu().squeeze(1).numpy()
+            self.buffer.update_priorities(indices, priorities)
             
         def actor_learn():
             loss = -torch.mean( self.critic(s0, self.actor(s0)) )
@@ -127,6 +165,15 @@ class Agent(object):
         actor_learn()
         soft_update(self.critic_target, self.critic, self.tau)
         soft_update(self.actor_target, self.actor, self.tau)
-                                           
+    
+    def save_data(self):
+        torch.save(self.actor, self.actor_save_url)
+        torch.save(self.critic, self.critic_save_url)
+
+    def load_model(self):
+        torch.load(self.actor, self.actor_save_url)
+        torch.load(self.critic, self.critic_save_url)
+
+        
                                            
   
