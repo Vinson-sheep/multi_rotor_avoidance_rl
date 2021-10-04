@@ -74,7 +74,8 @@ class Agent(object):
         self.actor_save_url = os.path.dirname(os.path.realpath(__file__)) + "/actor_model.pkl"
         self.critic_save_url = os.path.dirname(os.path.realpath(__file__)) + "/critic_model.pkl"
 
-        # self.load_model()
+        if self.load_data == True:
+            self.load_model()
 
         self.actor_target.load_state_dict(self.actor.state_dict())
         self.critic_target.load_state_dict(self.critic.state_dict())
@@ -161,8 +162,8 @@ class Agent(object):
         torch.save(self.critic, self.critic_save_url)
 
     def load_model(self):
-        torch.load(self.actor, self.actor_save_url)
-        torch.load(self.critic, self.critic_save_url)
+        self.actor = torch.load(self.actor_load_url)
+        self.critic = torch.load(self.critic_load_url)
 
         
                                            

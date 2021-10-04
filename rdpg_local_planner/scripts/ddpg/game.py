@@ -39,7 +39,7 @@ class Game:
         self.scan = LaserScan()
         self.body_v = TwistStamped()
 
-        self.crash_limit = 0.52
+        self.crash_limit = 0.53
 
         self.start_flag = False
 
@@ -102,8 +102,8 @@ class Game:
             # calculate the vx and vy
             alpha = self.scan.angle_min + self.scan.angle_increment * self.crash_index
 
-            vx = -math.cos(alpha) * 0.2
-            vy = -math.sin(alpha) * 0.2 
+            vx = -math.cos(alpha) * 0.3
+            vy = -math.sin(alpha) * 0.3 
             self._send_velocity_cmd(vx, vy, 0)
             self.hold_flag = False
             self.rate.sleep()
@@ -310,7 +310,7 @@ class Game:
 
         for i in range(len(self.scan.ranges)):
             if self.scan.ranges[i] < 2*self.crash_limit:
-                self.laser_crashed_reward = - 80.0
+                self.laser_crashed_reward = - 40.0
             if self.scan.ranges[i] < self.crash_limit:
                 self.laser_crashed_reward = - 200.0
                 self.laser_crashed_flag = True
@@ -536,20 +536,18 @@ class Game:
         """
         # ranges msg
         state = np.ones(self.state_num)
-        # cur_ranges = (self.scan.ranges - self.scan.range_max/2)/(self.scan.range_max/2)
         cur_ranges = [ (i - self.scan.range_max/2)/(self.scan.range_max/2) for i in self.scan.ranges]
-        # state[0:len(cur_ranges)] = cur_ranges[0:len(cur_ranges)]
         for i in range(len(cur_ranges)):
             state[i] = cur_ranges[i]
 
         # pose msg
-        state[-5] = self.body_v.twist.linear.x
+        state[-5] = (self.body_v.twist.linear.x - 0.5)/0.5
         state[-4] = self.body_v.twist.linear.y
         state[-3] = self.body_v.twist.angular.z/math.pi
         # relative distance and normalize
-        distance_uav_target =  math.sqrt((self.target_x - self.pose.position.x)**2 + (self.target_y - self.pose.position.y)**2)
-        # distance_uav_target = (distance_uav_target, self.scan.range_max)
-        distance_uav_target = (2*distance_uav_target - self.scan.range_max)/self.scan.range_max
+        # /10 here is to cut down magnitude of distance
+        distance_uav_target =  math.sqrt((self.target_x - self.pose.position.x)**2 + (self.target_y - self.pose.position.y)**2)/10
+        # distance_uav_target = (2*distance_uav_target - self.scan.range_max)/self.scan.range_max
         # relative angular difference and normalize
         angle_uav_targer = atan2(self.target_y - self.pose.position.y, self.target_x - self.pose.position.x)
         (_, _, angle_uav) = euler_from_quaternion([
