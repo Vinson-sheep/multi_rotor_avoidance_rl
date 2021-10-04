@@ -9,8 +9,9 @@ import visdom
 import scipy.io as sio
 import os
 
+# hyper parameter
 epsilon = 0.9
-epsilon_decay = 0.999
+epsilon_decay = 0.99995
 
 x = []
 y = []
@@ -20,7 +21,20 @@ q = []
 step_count = 0
 agent = None
 
+params = {
+        'gamma': 0.90,
+        'actor_lr': 0.0001,
+        'critic_lr': 0.0001,
+        'tau': 0.01,
+        'buffer_size': 100000,
+        'batch_size': 512,
+        'alpha': 0.3,
+        'hyper_parameters_eps': 0.2
+}
+
 viz = visdom.Visdom(env="line")
+
+# tool function
 
 def limit(x, max_x, min_x):
     return max(min(x, max_x), min_x)
@@ -94,17 +108,6 @@ if __name__ == '__main__':
 
 
     # plotTimer = rospy.Timer(rospy.Duration(60), plotCB)
-    
-
-    params = {
-        'env': env,
-        'gamma': 0.99,
-        'actor_lr': 0.001,
-        'critic_lr': 0.001,
-        'tau': 0.02,
-        'capacity': 100000,
-        'batch_size': 256,
-    }
 
     agent = Agent(**params)
 
@@ -124,32 +127,29 @@ if __name__ == '__main__':
 
             a0 = agent.act(s0)
 
+            if epsilon > np.random.random():
+                a0[0] += np.random.random()*0.4
+                a0[1] += (np.random.random()-0.5)*0.4
+
+                a0[0] = limit(a0[0], 1.0, 0.0)
+                a0[1] = limit(a0[1], 1.0, -1.0)
+
+
             # if epsilon > np.random.random():
             #     a0[0] += np.random.random()*0.4
-            #     a0[1] += (np.random.random()-0.5)*0.5
-            #     a0[2] += (np.random.random()-0.5)*0.4
+            #     a0[1] = 0
+            #     a0[2] = s0[-1]
 
             #     a0[0] = limit(a0[0], 1.0, 0.0)
             #     a0[1] = limit(a0[1], 1.0, -1.0)
             #     a0[2] = limit(a0[2], 1.0, -1.0)
 
-
-            if epsilon > np.random.random():
-                a0[0] += np.random.random()*0.4
-                a0[1] = 0
-                a0[2] = s0[-1]
-
-                a0[0] = limit(a0[0], 1.0, 0.0)
-                a0[1] = limit(a0[1], 1.0, -1.0)
-                a0[2] = limit(a0[2], 1.0, -1.0)
-
             epsilon = max(epsilon_decay*epsilon, 0.10)
             
-
             print("eps = ", epsilon)
 
             begin_time = rospy.Time.now()
-            s1, r1, done = env.step(0.1, a0[0], a0[1], a0[2])
+            s1, r1, done = env.step(0.1, a0[0], 0, a0[1])
             q_value = agent.put(s0, a0, r1, s1, done)
             
             r.append(r1)

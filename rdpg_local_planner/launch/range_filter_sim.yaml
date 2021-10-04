@@ -18,6 +18,6 @@ scan_filter_chain:
     angle_min: 0.0
     angle_max: 6.28319
     lower_threshold: 0.14           # if not specified defaults to 0.0
-    upper_threshold: 8             # if not specified defaults to 100000.0
+    upper_threshold: 3.5             # if not specified defaults to 100000.0
     lower_replacement_value: 0    # if not specified defaults to NaN
     upper_replacement_value: 0   # if not specified defaults to NaN

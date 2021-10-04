@@ -6,7 +6,7 @@ import rospy
 from sensor_msgs.msg import LaserScan
 
 input_num = 1080
-output_num = 72
+output_num = 24
 
 class laser_filter_downsample:
     def __init__(self):
@@ -22,10 +22,10 @@ class laser_filter_downsample:
         pub_msg.header.frame_id = msg.header.frame_id
         pub_msg.angle_max = msg.angle_max
         pub_msg.angle_min = msg.angle_min
-        pub_msg.angle_increment = 2.0*msg.angle_max/72.0
+        pub_msg.angle_increment = 2.0*msg.angle_max/float(output_num)
         pub_msg.time_increment = msg.time_increment
         pub_msg.scan_time = msg.scan_time
-        pub_msg.range_max = 8.0
+        pub_msg.range_max = 3.5
         pub_msg.range_min = 0.14
 
         for i in range(output_num):

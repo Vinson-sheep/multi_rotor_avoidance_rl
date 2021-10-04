@@ -19,34 +19,29 @@ import os
 class Actor(nn.Module):
     def __init__(self):
         super(Actor, self).__init__()
-        self.linear1 = nn.Linear(77, 500)
+        self.linear1 = nn.Linear(24+4, 500)
         self.linear2 = nn.Linear(500, 500)
         self.linear3 = nn.Linear(500, 500)
         self.linear_vx = nn.Linear(500, 1)
-        self.linear_vy = nn.Linear(500, 1)
         self.linear_yaw = nn.Linear(500, 1)
-
         
     def forward(self, s):
         x = torch.relu(self.linear1(s))
         x = torch.relu(self.linear2(x))
         x = torch.relu(self.linear3(x))
         vx = torch.sigmoid(self.linear_vx(x))
-        vy = torch.tanh(self.linear_vy(x))
         yaw = torch.tanh(self.linear_yaw(x))
 
-        x = torch.cat([vx, vy], 1)
-        x = torch.cat([x, yaw], 1)
+        x = torch.cat([vx, yaw], 1)
         
-
         return x
 
 
 class Critic(nn.Module):
     def __init__(self):
         super(Critic, self).__init__()
-        self.linear1 = nn.Linear(77, 500)
-        self.linear2 = nn.Linear(500+3, 500)
+        self.linear1 = nn.Linear(24+4, 500)
+        self.linear2 = nn.Linear(500+2, 500)
         self.linear3 = nn.Linear(500, 500)
         self.linear4 = nn.Linear(500, 1)
 
@@ -65,18 +60,13 @@ class Agent(object):
         for key, value in kwargs.items():
             setattr(self, key, value)
 
-        s_dim = 77
-        a_dim = 3
-
         self.actor = Actor().cuda()
         self.actor_target = Actor().cuda()
         self.critic = Critic().cuda()
         self.critic_target = Critic().cuda()
         self.actor_optim = optim.Adam(self.actor.parameters(), lr = self.actor_lr)
         self.critic_optim = optim.Adam(self.critic.parameters(), lr = self.critic_lr)
-        self.buffer = PrioritizedReplayBuffer()
-        
-        # self.load_model()
+        self.buffer = PrioritizedReplayBuffer(self.buffer_size, self.batch_size)
 
         # load and save
         self.actor_load_url = os.path.dirname(os.path.realpath(__file__)) + "/actor_model.pkl"
@@ -112,12 +102,12 @@ class Agent(object):
         y_true = r1 + self.gamma * self.critic_target(s1, a1).mul(1-done).detach()
         y_pred = self.critic_target(s0, a0).detach()
 
-        loss_fn = nn.MSELoss()
-        loss = loss_fn(y_pred, y_true).detach()
+        # loss_fn = nn.MSELoss()
+        # loss = loss_fn(y_pred, y_true).detach()
 
-        priority = (loss.item())**0.1
+        # priority = (loss.item())**self.alpha
 
-        self.buffer.add(transition, priority)
+        self.buffer.add(transition, 10000.0)
 
         return y_pred.cpu().item()
 
@@ -148,7 +138,7 @@ class Agent(object):
             self.critic_optim.step()
 
             # update priorities
-            priorities = (((y_true - y_pred).detach()**2)**0.1).cpu().squeeze(1).numpy()
+            priorities = (((y_true - y_pred).detach()**2)*self.alpha).cpu().squeeze(1).numpy() + self.hyper_parameters_eps
             self.buffer.update_priorities(indices, priorities)
             
         def actor_learn():

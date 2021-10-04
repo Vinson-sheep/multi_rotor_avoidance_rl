@@ -7,12 +7,12 @@ import numpy as np
 
 class PrioritizedReplayBuffer:
 
-    def __init__(self):
+    def __init__(self, buffer_size, batch_size):
         """
         
         """
-        self.buffer_size = 1000000
-        self.batch_size = 256
+        self.buffer_size = buffer_size
+        self.batch_size = batch_size
 
         self.memory = deque(maxlen=self.buffer_size)
         self.priority_tree = deque(maxlen=self.buffer_size)
