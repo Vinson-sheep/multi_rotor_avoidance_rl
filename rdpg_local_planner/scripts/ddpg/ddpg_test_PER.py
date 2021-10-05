@@ -8,6 +8,8 @@ from ddpg_PER import Agent
 import visdom
 import scipy.io as sio
 import os
+import threading
+import time
 
 # hyper parameter
 epsilon = 0.9
@@ -32,7 +34,7 @@ params = {
         'batch_size': 512,
         'alpha': 0.3,
         'hyper_parameters_eps': 0.2,
-        'load_data': True
+        'load_data': load_able
 }
 
 viz = visdom.Visdom(env="line")
@@ -42,11 +44,70 @@ viz = visdom.Visdom(env="line")
 def limit(x, max_x, min_x):
     return max(min(x, max_x), min_x)
 
+class myThread(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+
+    def run(self):
+        # save mat
+        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/step.mat',{'data': s},True,'5', False, False,'row')
+        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/reward.mat',{'data': r},True,'5', False, False,'row')
+        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/q_value.mat',{'data': q},True,'5', False, False,'row')
+        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/episode.mat',{'data': x},True,'5', False, False,'row')
+        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/total_reward.mat',{'data': y},True,'5', False, False,'row')
+        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/epsilon.mat',{'data': epsilon},True,'5', False, False,'row')
+
+        # plot
+        viz.line(
+            y,
+            x,
+            win="gazebo1",
+            name="line1",
+            update=None,
+            opts={
+                'showlegend': True,
+                'title': "reward-episode",
+                'xlabel': "episode",
+                'ylabel': "reward",
+            },
+        )
+        viz.line(
+            r,
+            s,
+            win="gazebo2",
+            name="line2",
+            update=None,
+            opts={
+                'showlegend': True,
+                'title': "reward-step",
+                'xlabel': "step",
+                'ylabel': "reward",
+            },
+        )
+        viz.line(
+            q,
+            s,
+            win="gazebo3",
+            name="line3",
+            update=None,
+            opts={
+                'showlegend': True,
+                'title': "q_value-step",
+                'xlabel': "step",
+                'ylabel': "Q value",
+            },
+        )
+
+        # save model
+        agent.save_data()
+
+        rospy.loginfo("save temperory variables, plot, and save models.")
+
 if __name__ == '__main__':
     rospy.init_node("test")
     # global env
     env = game.Game("iris_0")
-    
+
     # load data
     if load_able == True:
         # x = list(sio.loadmat(os.path.dirname(os.path.realpath(__file__)) + '/episode.mat')['data'])[0]
@@ -122,56 +183,7 @@ if __name__ == '__main__':
         x.append(episode)
         y.append(episode_reward)
 
-        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/step.mat',{'data': s},True,'5', False, False,'row')
-        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/reward.mat',{'data': r},True,'5', False, False,'row')
-        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/q_value.mat',{'data': q},True,'5', False, False,'row')
-        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/episode.mat',{'data': x},True,'5', False, False,'row')
-        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/total_reward.mat',{'data': y},True,'5', False, False,'row')
-        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/epsilon.mat',{'data': epsilon},True,'5', False, False,'row')
-
-        # plot
-        viz.line(
-            y,
-            x,
-            win="gazebo1",
-            name="line1",
-            update=None,
-            opts={
-                'showlegend': True,
-                'title': "reward-episode",
-                'xlabel': "episode",
-                'ylabel': "reward",
-            },
-        )
-        viz.line(
-            r,
-            s,
-            win="gazebo2",
-            name="line2",
-            update=None,
-            opts={
-                'showlegend': True,
-                'title': "reward-step",
-                'xlabel': "step",
-                'ylabel': "reward",
-            },
-        )
-        viz.line(
-            q,
-            s,
-            win="gazebo3",
-            name="line3",
-            update=None,
-            opts={
-                'showlegend': True,
-                'title': "q_value-step",
-                'xlabel': "step",
-                'ylabel': "Q value",
-            },
-        )
-
-        # save model
-        agent.save_data()
+        myThread().start()
 
     rospy.spin()
 

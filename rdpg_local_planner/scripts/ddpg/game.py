@@ -90,7 +90,7 @@ class Game:
         # stop in place
         print("stoping.")
         # while not self._is_hold():
-        for i in range(10):
+        for i in range(20):
             self._send_velocity_cmd(0, 0, 0)
             self.hold_flag = False
             self.rate.sleep()
