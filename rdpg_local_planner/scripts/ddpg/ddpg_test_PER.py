@@ -23,14 +23,14 @@ q = []
 step_count_begin = 0
 episode_begin = 0
 agent = None
-load_able = True # True if you want to load previous data
+load_able = False # True if you want to load previous data
 
 params = {
-        'gamma': 0.90,
+        'gamma': 0.95,
         'actor_lr': 0.0001,
         'critic_lr': 0.0001,
         'tau': 0.01,
-        'buffer_size': 100000,
+        'buffer_size': 150000,
         'batch_size': 512,
         'alpha': 0.3,
         'hyper_parameters_eps': 0.2,
@@ -146,6 +146,8 @@ if __name__ == '__main__':
             s.append(step_count_begin)
 
             a0 = agent.act(s0)
+
+            print("a0", a0)
 
             # E-greedy
             if epsilon > np.random.random():
