@@ -39,7 +39,7 @@ class Game:
         self.scan = LaserScan()
         self.body_v = TwistStamped()
 
-        self.crash_limit = 0.52
+        self.crash_limit = 0.30
 
         self.start_flag = False
 
@@ -310,7 +310,7 @@ class Game:
 
         for i in range(len(self.scan.ranges)):
             if self.scan.ranges[i] < 2*self.crash_limit:
-                self.laser_crashed_reward = - 80.0
+                self.laser_crashed_reward = - 40.0
             if self.scan.ranges[i] < self.crash_limit:
                 self.laser_crashed_reward = - 200.0
                 self.laser_crashed_flag = True

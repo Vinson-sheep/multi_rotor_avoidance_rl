@@ -15,7 +15,7 @@
     <arg name="est" default="ekf2"/>
     <arg name="vehicle" default="iris"/>
     <arg name="world" default="$(find rdpg_local_planner)/worlds/env1.world"/>
-    <arg name="sdf" default="$(find mavlink_sitl_gazebo)/models/EXP_iris/EXP_iris.sdf"/>
+    <arg name="sdf" default="$(find mavlink_sitl_gazebo)/models/falco_01/urdf/falco_01.sdf"/>
 
     <!-- gazebo configs -->
     <arg name="gui" default="true"/>
