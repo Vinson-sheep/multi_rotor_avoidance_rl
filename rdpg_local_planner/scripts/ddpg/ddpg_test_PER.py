@@ -160,7 +160,7 @@ if __name__ == '__main__':
             print("eps = ", epsilon)
 
             begin_time = rospy.Time.now()
-            s1, r1, done = env.step(0.1, a0[0], 0, a0[1])
+            s1, r1, done = env.step(0.1, 0.5*a0[0], 0, a0[1])
             q_value = agent.put(s0, a0, r1, s1, done)
             
             r.append(r1)

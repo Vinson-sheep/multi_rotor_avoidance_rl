@@ -351,7 +351,7 @@ class Game:
 
         # arrive reward
         self.arrive_reward = 0
-        if cur_distance < 1:
+        if cur_distance < 0.3:
             self.arrive_reward = 100
             self.done = True
 
