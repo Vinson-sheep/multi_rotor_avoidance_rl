@@ -23,7 +23,7 @@ q = []
 step_count_begin = 0
 episode_begin = 0
 agent = None
-load_able = False # True if you want to load previous data
+load_able = True # True if you want to load previous data
 
 params = {
         'gamma': 0.90,
@@ -31,7 +31,7 @@ params = {
         'critic_lr': 0.0001,
         'tau': 0.01,
         'buffer_size': 100000,
-        'batch_size': 512,
+        'batch_size': 64,
         'alpha': 0.3,
         'hyper_parameters_eps': 0.2,
         'load_data': load_able

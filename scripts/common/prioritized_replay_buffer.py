@@ -2,10 +2,11 @@
 #-*- coding: UTF-8 -*- 
 
 import random
-from collections import deque
+import collections
 import numpy as np
 import os
-import scipy.io as sio
+import json
+import numpy as np
 
 class PrioritizedReplayBuffer:
 
@@ -16,8 +17,8 @@ class PrioritizedReplayBuffer:
         self.buffer_size = buffer_size
         self.batch_size = batch_size
 
-        self.memory = deque(maxlen=self.buffer_size)
-        self.priority_tree = deque(maxlen=self.buffer_size)
+        self.memory = collections.deque(maxlen=self.buffer_size)
+        self.priority_tree = collections.deque(maxlen=self.buffer_size)
 
     def add(self, transition, priority):
         """
@@ -61,18 +62,42 @@ class PrioritizedReplayBuffer:
         return len(self.memory) >= self.batch_size
 
     def save(self):
-        m = [i for i in self.memory]
-        p  = [i for i in self.priority_tree]
 
-        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/memory.mat',{'data': m},True,'5', False, False,'row')
-        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/priority.mat',{'data': p},True,'5', False, False,'row')
+        # encode
+        m = []
+        for i in range(len(self.memory)-1, -1, -1):
+            t = list(self.memory[i])
+            t[0] = np.array(t[0], dtype='float32').tolist()
+            t[1] = np.array(t[1], dtype='float32').tolist()
+            t[2] = float(t[2])
+            t[3] = np.array(t[3], dtype='float32').tolist()
+            t[4] = float(t[4])
+            m.append(t)
+
+        p  = list(self.priority_tree)
+
+        print("buffer size:", len(self.memory))
+
+        with open(os.path.dirname(os.path.realpath(__file__)) + '/memory.json','w') as file_obj:
+            json.dump(m, file_obj)
+
+        with open(os.path.dirname(os.path.realpath(__file__)) + '/priority.json','w') as file_obj:
+            json.dump(p, file_obj)
+
+
 
     def load(self):
-        m = list(sio.loadmat(os.path.dirname(os.path.realpath(__file__)) + '/memory.mat')['data'][0])
-        p = list(sio.loadmat(os.path.dirname(os.path.realpath(__file__)) + '/priority.mat')['data'][0])
+
+        with open(os.path.dirname(os.path.realpath(__file__)) + '/memory.json') as file_obj:
+            m = json.load(file_obj)
+
+        with open(os.path.dirname(os.path.realpath(__file__)) + '/priority.json') as file_obj:
+            p = json.load(file_obj)
 
         for i,j in zip(m, p):
             self.add(i, j)
+
+        print("restore buffer size:", len(self.memory))
             
 
 if __name__ == '__main__':

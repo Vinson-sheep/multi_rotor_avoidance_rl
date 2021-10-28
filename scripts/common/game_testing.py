@@ -179,8 +179,8 @@ class Game:
         rospy.loginfo("initialize uav position.")
 
         # randomize target point
-        self.target_x = random.choice([10, -10]) + random.choice([-1, 1])* np.random.random()
-        self.target_y = random.choice([10, -10]) + random.choice([-1, 1])* np.random.random()
+        self.target_x = random.choice([7, -7]) + random.choice([-1, 1])* np.random.random()
+        self.target_y = random.choice([7, -7]) + random.choice([-1, 1])* np.random.random()
 
         target_msg = ModelState()
         target_msg.model_name = 'unit_sphere'
@@ -207,8 +207,8 @@ class Game:
         
 
         # randomize target point
-        self.target_x = random.choice([10, -10]) + random.choice([-1, 1])* np.random.random()
-        self.target_y = random.choice([10, -10]) + random.choice([-1, 1])* np.random.random()
+        self.target_x = random.choice([7, -7]) + random.choice([-1, 1])* np.random.random()
+        self.target_y = random.choice([7, -7]) + random.choice([-1, 1])* np.random.random()
 
         target_msg = ModelState()
         target_msg.model_name = 'unit_sphere'
