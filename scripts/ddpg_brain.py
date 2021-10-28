@@ -141,7 +141,8 @@ class Agent(object):
             # update priorities
             priorities = (((y_true - y_pred).detach()**2)*self.alpha).cpu().squeeze(1).numpy() + self.hyper_parameters_eps
             self.buffer.update_priorities(indices, priorities)
-            
+        
+
         def actor_learn():
             loss = -torch.mean( self.critic(s0, self.actor(s0)) )
             self.actor_optim.zero_grad()
@@ -160,10 +161,12 @@ class Agent(object):
     def save_data(self):
         torch.save(self.actor, self.actor_save_url)
         torch.save(self.critic, self.critic_save_url)
+        self.buffer.save()
 
     def load_model(self):
         self.actor = torch.load(self.actor_load_url)
         self.critic = torch.load(self.critic_load_url)
+        self.buffer.load( )
 
         
                                            

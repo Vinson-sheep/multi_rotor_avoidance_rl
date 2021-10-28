@@ -23,7 +23,7 @@ q = []
 step_count_begin = 0
 episode_begin = 0
 agent = None
-load_able = True # True if you want to load previous data
+load_able = False # True if you want to load previous data
 
 params = {
         'gamma': 0.90,
@@ -108,9 +108,10 @@ if __name__ == '__main__':
     # global env
     env = game.Game("iris_0")
 
+    agent = Agent(**params)
+
     # load data
     if load_able == True:
-        # x = list(sio.loadmat(os.path.dirname(os.path.realpath(__file__)) + '/episode.mat')['data'])[0]
         x = list(sio.loadmat(os.path.dirname(os.path.realpath(__file__)) + '/ddpg_data/episode.mat')['data'][0])
         y = list(sio.loadmat(os.path.dirname(os.path.realpath(__file__)) + '/ddpg_data/total_reward.mat')['data'][0])
         r = list(sio.loadmat(os.path.dirname(os.path.realpath(__file__)) + '/ddpg_data/reward.mat')['data'][0])
@@ -126,10 +127,7 @@ if __name__ == '__main__':
             episode_begin = x[-1] + 1
             print("restore episode:", episode_begin)
 
-
-    # plotTimer = rospy.Timer(rospy.Duration(60), plotCB)
-
-    agent = Agent(**params)
+    
 
     for episode in range(episode_begin, 1000):
         if episode == episode_begin:

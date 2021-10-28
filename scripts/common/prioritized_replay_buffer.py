@@ -4,6 +4,8 @@
 import random
 from collections import deque
 import numpy as np
+import os
+import scipy.io as sio
 
 class PrioritizedReplayBuffer:
 
@@ -57,6 +59,21 @@ class PrioritizedReplayBuffer:
         True if len(self.memory) >= self.batch_size
         """
         return len(self.memory) >= self.batch_size
+
+    def save(self):
+        m = [i for i in self.memory]
+        p  = [i for i in self.priority_tree]
+
+        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/memory.mat',{'data': m},True,'5', False, False,'row')
+        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/priority.mat',{'data': p},True,'5', False, False,'row')
+
+    def load(self):
+        m = list(sio.loadmat(os.path.dirname(os.path.realpath(__file__)) + '/memory.mat')['data'][0])
+        p = list(sio.loadmat(os.path.dirname(os.path.realpath(__file__)) + '/priority.mat')['data'][0])
+
+        for i,j in zip(m, p):
+            self.add(i, j)
+            
 
 if __name__ == '__main__':
     test_buffer = PrioritizedReplayBuffer()
