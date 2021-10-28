@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(rdpg_local_planner)
+project(multi_rotor_avoidance_rl)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -100,7 +100,7 @@ find_package(catkin REQUIRED COMPONENTS rospy roscpp geometry_msgs sensor_msgs m
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES rdpg_local_planner
+#  LIBRARIES multi_rotor_avoidance_rl
 #  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
 )
@@ -118,7 +118,7 @@ include_directories(
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/rdpg_local_planner.cpp
+#   src/${PROJECT_NAME}/multi_rotor_avoidance_rl.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -129,7 +129,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/rdpg_local_planner_node.cpp)
+# add_executable(${PROJECT_NAME}_node src/multi_rotor_avoidance_rl_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -156,10 +156,9 @@ include_directories(
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS
-  scripts/ddpg/test.py
-  scripts/ddpg/laser_filter_downsample.py
-  scripts/ddpg/ddpg_test_PER.py
-  scripts/ddpg/prioritized_replay_buffer.py
+  scripts/test.py
+  scripts/ddpg_testing.py
+  scripts/common/game_testing.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
@@ -196,10 +195,6 @@ catkin_install_python(PROGRAMS
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_rdpg_local_planner.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_multi_rotor_avoidance_rl.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
-# endif()
-
-## Add folders to be run by python nosetests
-# catkin_add_nosetests(test)

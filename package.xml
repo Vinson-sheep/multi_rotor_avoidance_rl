@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>rdpg_local_planner</name>
+  <name>multi_rotor_avoidance_rl</name>
   <version>0.0.0</version>
-  <description>The rdpg_local_planner package</description>
+  <description>The multi_rotor_avoidance_rl package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
@@ -13,7 +13,7 @@
   <license>TODO</license>  <!-- Url tags are optional, but multiple are allowed, one per tag -->
   <!-- Optional attribute type can be: website, bugtracker, or repository -->
   <!-- Example: -->
-  <!-- <url type="website">http://wiki.ros.org/rdpg_local_planner</url> -->  <!-- Author tags are optional, multiple are allowed, one per tag -->
+  <!-- <url type="website">http://wiki.ros.org/multi_rotor_avoidance_RL</url> -->  <!-- Author tags are optional, multiple are allowed, one per tag -->
   <!-- Authors do not have to be maintainers, but could be -->
   <!-- Example: -->
   <!-- <author email="jane.doe@example.com">Jane Doe</author> -->  <!-- The *depend tags are used to specify dependencies -->

@@ -186,7 +186,7 @@ class Game:
         target_msg.model_name = 'unit_sphere'
         target_msg.pose.position.x = self.target_x
         target_msg.pose.position.y = self.target_y
-        target_msg.pose.position.z = self.height
+        target_msg.pose.position.z = self.height - 1
         target_msg.pose.orientation.x = 0
         target_msg.pose.orientation.y = 0
         target_msg.pose.orientation.z = 0
@@ -214,7 +214,7 @@ class Game:
         target_msg.model_name = 'unit_sphere'
         target_msg.pose.position.x = self.target_x
         target_msg.pose.position.y = self.target_y
-        target_msg.pose.position.z = self.height
+        target_msg.pose.position.z = self.height - 1
         target_msg.pose.orientation.x = 0
         target_msg.pose.orientation.y = 0
         target_msg.pose.orientation.z = 0

@@ -153,9 +153,11 @@ class Agent(object):
                 target_param.data.copy_(target_param.data * (1.0 - tau) + param.data * tau)
     
         critic_learn()
-        actor_learn()
+        if not self.fix_actor:
+            actor_learn()
         soft_update(self.critic_target, self.critic, self.tau)
-        soft_update(self.actor_target, self.actor, self.tau)
+        if not self.fix_actor:
+            soft_update(self.actor_target, self.actor, self.tau)
     
     def save_data(self):
         torch.save(self.actor, self.actor_save_url)
