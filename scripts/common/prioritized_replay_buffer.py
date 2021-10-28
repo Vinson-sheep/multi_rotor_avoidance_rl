@@ -7,6 +7,7 @@ import numpy as np
 import os
 import json
 import numpy as np
+import pickle
 
 class PrioritizedReplayBuffer:
 
@@ -61,41 +62,21 @@ class PrioritizedReplayBuffer:
         """
         return len(self.memory) >= self.batch_size
 
+
     def save(self):
-
-        # encode
-        m = []
-        for i in range(len(self.memory)-1, -1, -1):
-            t = list(self.memory[i])
-            t[0] = np.array(t[0], dtype='float32').tolist()
-            t[1] = np.array(t[1], dtype='float32').tolist()
-            t[2] = float(t[2])
-            t[3] = np.array(t[3], dtype='float32').tolist()
-            t[4] = float(t[4])
-            m.append(t)
-
-        p  = list(self.priority_tree)
-
         print("buffer size:", len(self.memory))
 
-        with open(os.path.dirname(os.path.realpath(__file__)) + '/memory.json','w') as file_obj:
-            json.dump(m, file_obj)
-
-        with open(os.path.dirname(os.path.realpath(__file__)) + '/priority.json','w') as file_obj:
-            json.dump(p, file_obj)
-
-
+        save_file = open(os.path.dirname(os.path.realpath(__file__)) + '/temp.bin',"wb")
+        pickle.dump(self.memory,save_file)
+        pickle.dump(self.priority_tree,save_file)
+        save_file.close()
+        
 
     def load(self):
 
-        with open(os.path.dirname(os.path.realpath(__file__)) + '/memory.json') as file_obj:
-            m = json.load(file_obj)
-
-        with open(os.path.dirname(os.path.realpath(__file__)) + '/priority.json') as file_obj:
-            p = json.load(file_obj)
-
-        for i,j in zip(m, p):
-            self.add(i, j)
+        load_file = open(os.path.dirname(os.path.realpath(__file__)) + '/temp.bin',"rb")
+        self.memory=pickle.load(load_file)
+        self.priority_tree=pickle.load(load_file)
 
         print("restore buffer size:", len(self.memory))
             
