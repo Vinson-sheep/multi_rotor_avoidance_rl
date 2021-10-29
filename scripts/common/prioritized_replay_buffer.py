@@ -1,11 +1,9 @@
 #! /usr/bin/env python
 #-*- coding: UTF-8 -*- 
 
-import random
 import collections
 import numpy as np
 import os
-import json
 import numpy as np
 import pickle
 

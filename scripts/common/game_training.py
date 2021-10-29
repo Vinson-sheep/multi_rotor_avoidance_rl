@@ -51,6 +51,8 @@ class Game:
 
         self.height = 3.0 # height of taking off
 
+        self.target_distance = 3
+
         self.rate = rospy.Rate(20)
 
         self.hold_flag = False # if True, send hold command
@@ -179,8 +181,8 @@ class Game:
         rospy.loginfo("initialize uav position.")
 
         # randomize target point
-        self.target_x = random.choice([7, -7]) + random.choice([-1, 1])* np.random.random()
-        self.target_y = random.choice([7, -7]) + random.choice([-1, 1])* np.random.random()
+        self.target_x = random.choice([self.target_distance, -self.target_distance]) + random.choice([-1, 1])* np.random.random()
+        self.target_y = random.choice([self.target_distance, -self.target_distance]) + random.choice([-1, 1])* np.random.random()
 
         target_msg = ModelState()
         target_msg.model_name = 'unit_sphere'
@@ -207,8 +209,8 @@ class Game:
         
 
         # randomize target point
-        self.target_x = random.choice([7, -7]) + random.choice([-1, 1])* np.random.random()
-        self.target_y = random.choice([7, -7]) + random.choice([-1, 1])* np.random.random()
+        self.target_x = random.choice([self.target_distance, -self.target_distance]) + random.choice([-1, 1])* np.random.random()
+        self.target_y = random.choice([self.target_distance, -self.target_distance]) + random.choice([-1, 1])* np.random.random()
 
         target_msg = ModelState()
         target_msg.model_name = 'unit_sphere'

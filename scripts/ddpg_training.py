@@ -9,11 +9,26 @@ import visdom
 import scipy.io as sio
 import os
 import threading
-import time
 
 # hyper parameter
 epsilon = 0.9
 epsilon_decay = 0.99995
+
+load_able = False # True if you want to load previous data
+
+params = {
+    'gamma': 0.90,
+    'actor_lr': 0.0001,
+    'critic_lr': 0.0001,
+    'tau': 0.01,
+    'buffer_size': 100000,
+    'batch_size': 512,
+    'alpha': 0.3,
+    'hyper_parameters_eps': 0.2,
+    'load_data': load_able
+}
+
+# hyper parameter end
 
 x = []
 y = []
@@ -23,19 +38,6 @@ q = []
 step_count_begin = 0
 episode_begin = 0
 agent = None
-load_able = True # True if you want to load previous data
-
-params = {
-        'gamma': 0.90,
-        'actor_lr': 0.0001,
-        'critic_lr': 0.0001,
-        'tau': 0.01,
-        'buffer_size': 100000,
-        'batch_size': 64,
-        'alpha': 0.3,
-        'hyper_parameters_eps': 0.2,
-        'load_data': load_able
-}
 
 viz = visdom.Visdom(env="line")
 
@@ -104,7 +106,11 @@ class myThread(threading.Thread):
         rospy.loginfo("save temperory variables, plot, and save models.")
 
 if __name__ == '__main__':
-    rospy.init_node("test")
+    rospy.init_node("training_node")
+
+    # wait for world building
+    rospy.sleep(rospy.Duration(3))
+
     # global env
     env = game.Game("iris_0")
 
@@ -129,7 +135,7 @@ if __name__ == '__main__':
 
     
 
-    for episode in range(episode_begin, 1000):
+    for episode in range(episode_begin, 200):
         if episode == episode_begin:
             s0 = env.start()
             print("start!")
