@@ -10,12 +10,11 @@ import os
 import pickle
 
 # hyper parameter
-max_testing_num = 1000
+max_testing_num = 100
 cur_testing_num = 0
 cur_success_num = 0
 
 restore_able = True
-
 testing_num_begin = 0
 
 params = {
@@ -33,7 +32,7 @@ params = {
 def save():
 
     save_file = open(os.path.dirname(os.path.realpath(__file__)) + '/ddpg_data/temp_t.bin',"wb")
-    pickle.dump(cur_testing_num ,save_file)
+    pickle.dump(cur_testing_num,save_file)
     pickle.dump(cur_success_num,save_file)
     pickle.dump(max_testing_num,save_file)
 
@@ -73,7 +72,9 @@ if __name__ == '__main__':
     testing_num_begin = cur_testing_num
 
 
-    for episode in range(testing_num_begin, 1000):
+    for episode in range(testing_num_begin, max_testing_num):
+
+        cur_testing_num = episode
 
         if episode == testing_num_begin:
             s0 = env.start()
@@ -101,7 +102,7 @@ if __name__ == '__main__':
                     print("arrived")
                 break
 
-        print('[' + str(episode) + ']', ' success_rate:', float(cur_success_num)/float(max_testing_num))
+        print('[' + str(episode) + ']', ' success_rate:', float(cur_success_num)/float(max_testing_num) * 100, "%")
 
         save()
 

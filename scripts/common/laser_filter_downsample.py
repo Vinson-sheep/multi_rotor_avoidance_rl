@@ -29,18 +29,19 @@ class laser_filter_downsample:
         pub_msg.range_min = 0.14
 
         for i in range(output_num):
-            sum = 0.0
-            count = 0
-            for j in range(int(input_num/output_num)):
-                if msg.ranges[int(i*(input_num/output_num)+j)] < 0.13:
-                    continue
-                else:
-                    sum += msg.ranges[int(i*(input_num/output_num)+j)]
-                    count += 1
-            if count == 0:
-                pub_msg.ranges.append(pub_msg.range_max)
-            else:
-                pub_msg.ranges.append(sum/count)
+            # sum = 0.0
+            # count = 0
+            # for j in range(int(input_num/output_num)):
+            #     if msg.ranges[int(i*(input_num/output_num)+j)] < 0.13:
+            #         continue
+            #     else:
+            #         sum += msg.ranges[int(i*(input_num/output_num)+j)]
+            #         count += 1
+            # if count == 0:
+            #     pub_msg.ranges.append(pub_msg.range_max)
+            # else:
+            #     pub_msg.ranges.append(sum/count)
+            pub_msg.ranges.append(msg.ranges[int(i*(input_num/output_num))+(input_num/output_num/2)])
 
         self.laserPub.publish(pub_msg)
 

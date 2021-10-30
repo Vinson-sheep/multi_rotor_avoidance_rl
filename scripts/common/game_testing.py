@@ -49,7 +49,7 @@ class Game:
         self.state_num = 24+4
         self.action_num = 2
 
-        self.height = 3.0 # height of taking off
+        self.height = 2.0 # height of taking off
 
         self.target_distance = 7
 
@@ -181,8 +181,12 @@ class Game:
         rospy.loginfo("initialize uav position.")
 
         # randomize target point
-        self.target_x = random.choice([self.target_distance, -self.target_distance]) + random.choice([-1, 1])* np.random.random()
-        self.target_y = random.choice([self.target_distance, -self.target_distance]) + random.choice([-1, 1])* np.random.random()
+        if (random.choice([-1, 1]) == 1):
+            self.target_x = random.choice([self.target_distance, -self.target_distance]) + random.choice([-1, 1])* np.random.random()
+            self.target_y = 0
+        else:
+            self.target_y = random.choice([self.target_distance, -self.target_distance]) + random.choice([-1, 1])* np.random.random()
+            self.target_x = 0
 
         target_msg = ModelState()
         target_msg.model_name = 'unit_sphere'
@@ -206,11 +210,14 @@ class Game:
         """
             send take-off command
         """
-        
+        if (random.choice([-1, 1]) == 1):
+            self.target_x = random.choice([self.target_distance, -self.target_distance]) + random.choice([-1, 1])* np.random.random()
+            self.target_y = 0
+        else:
+            self.target_y = random.choice([self.target_distance, -self.target_distance]) + random.choice([-1, 1])* np.random.random()
+            self.target_x = 0
 
         # randomize target point
-        self.target_x = random.choice([self.target_distance, -self.target_distance]) + random.choice([-1, 1])* np.random.random()
-        self.target_y = random.choice([self.target_distance, -self.target_distance]) + random.choice([-1, 1])* np.random.random()
 
         target_msg = ModelState()
         target_msg.model_name = 'unit_sphere'
@@ -353,7 +360,7 @@ class Game:
 
         # arrive reward
         self.arrive_reward = 0
-        if cur_distance < 0.3:
+        if cur_distance < 0.5:
             self.arrive_reward = 100
             self.done = True
 

@@ -51,7 +51,9 @@ class Game:
 
         self.height = 3.0 # height of taking off
 
-        self.target_distance = 3
+        self.target_distance = 7
+
+        self.step_count = 0
 
         self.rate = rospy.Rate(20)
 
@@ -88,6 +90,7 @@ class Game:
         """
             TODO
         """
+        self.step_count = 0
 
         # stop in place
         print("stoping.")
@@ -206,6 +209,7 @@ class Game:
         """
             send take-off command
         """
+        self.step_count = 0
         
 
         # randomize target point
@@ -311,10 +315,12 @@ class Game:
         self.crash_index = -1
 
         for i in range(len(self.scan.ranges)):
+            if self.scan.ranges[i] < 3*self.crash_limit:
+                self.laser_crashed_reward = min(0.0, self.laser_crashed_reward)
             if self.scan.ranges[i] < 2*self.crash_limit:
-                self.laser_crashed_reward = - 40.0
+                self.laser_crashed_reward = min(-20.0, self.laser_crashed_reward)
             if self.scan.ranges[i] < self.crash_limit:
-                self.laser_crashed_reward = - 200.0
+                self.laser_crashed_reward = - 100.0
                 self.laser_crashed_flag = True
                 self.crash_index = i
                 break
@@ -325,6 +331,8 @@ class Game:
         """
             game step
         """
+        self.step_count += 1
+
         self.hold_able = False
         # record last x and y
         last_pos_x_uav = self.pose.position.x
@@ -354,7 +362,7 @@ class Game:
         # arrive reward
         self.arrive_reward = 0
         if cur_distance < 0.3:
-            self.arrive_reward = 100
+            self.arrive_reward = 200
             self.done = True
 
         # crash reward
@@ -377,21 +385,24 @@ class Game:
         # angular punish reward
         self.angular_punish_reward = 0
 
-        if self.body_v.twist.angular.z < -0.8:
-            self.angular_punish_reward = -1
-        if self.body_v.twist.angular.z > 0.8:
-            self.angular_punish_reward = -1
+        if abs(self.body_v.twist.angular.z) > 0.5:
+            self.angular_punish_reward = -3
+
+        # step punish reward
+        self.step_punish_reward = -self.step_count * 0.002
 
         print("distance_reward: ", distance_reward*(5/time_step)*1.2*7, " arrive_reward: ", self.arrive_reward,
                 " crash reward: ", crash_reward, " laser reward: ", laser_reward, " linear punish reward x:", 
-                self.linear_punish_reward_x, " angular punish reward:", self.angular_punish_reward)
+                self.linear_punish_reward_x, " angular punish reward:", self.angular_punish_reward,
+                "step_punish_reward", self.step_punish_reward)
 
         total_reward = distance_reward*(5/time_step)*1.2*7 \
                         + self.arrive_reward \
                         + crash_reward \
                         + laser_reward \
                         + self.linear_punish_reward_x \
-                        + self.angular_punish_reward
+                        + self.angular_punish_reward \
+                        + self.step_punish_reward
 
         self.hold_able = True
 
