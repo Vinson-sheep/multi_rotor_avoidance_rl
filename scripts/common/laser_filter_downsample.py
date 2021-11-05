@@ -6,7 +6,7 @@ import rospy
 from sensor_msgs.msg import LaserScan
 
 input_num = 1080
-output_num = 24
+output_num = 35
 
 class laser_filter_downsample:
     def __init__(self):

@@ -51,7 +51,9 @@ class Game:
 
         self.height = 2.0 # height of taking off
 
-        self.target_distance = 7
+        self.target_distance = 2
+
+        self.step_count = 0
 
         self.rate = rospy.Rate(20)
 
@@ -88,6 +90,7 @@ class Game:
         """
             TODO
         """
+        self.step_count = 0
 
         # stop in place
         print("stoping.")
@@ -146,8 +149,17 @@ class Game:
         rospy.sleep(rospy.Duration(1))
         
         # fly home
-        home_x = random.choice([-1, 1])* np.random.random()
-        home_y = random.choice([-1, 1])* np.random.random()
+        if (random.choice([-1, 1]) == 1):
+            home_x_center = random.choice([-8, -4, 0, 4, 8])
+            home_y_center = 0
+            home_x = home_x_center + 0.1*random.choice([-1, 1])* np.random.random()
+            home_y = home_y_center + 0.1*random.choice([-1, 1])* np.random.random()
+        else:
+            home_y_center = random.choice([-8, -4, 0, 4, 8])
+            home_x_center = 0
+            home_y = home_y_center + 0.1*random.choice([-1, 1])* np.random.random()
+            home_x = home_x_center + 0.1*random.choice([-1, 1])* np.random.random()
+
         home_yaw = 3.1415926*random.choice([-1, 1])* np.random.random()
 
         while self._is_arrived(home_x, home_y, 6) == False or self._is_hold() == False:
@@ -182,11 +194,11 @@ class Game:
 
         # randomize target point
         if (random.choice([-1, 1]) == 1):
-            self.target_x = random.choice([self.target_distance, -self.target_distance]) + random.choice([-1, 1])* np.random.random()
-            self.target_y = 0
+            self.target_x = home_x_center + random.choice([self.target_distance, -self.target_distance]) + 0.1*random.choice([-1, 1])* np.random.random()
+            self.target_y = home_y_center + 0.1*random.choice([-1, 1])* np.random.random()
         else:
-            self.target_y = random.choice([self.target_distance, -self.target_distance]) + random.choice([-1, 1])* np.random.random()
-            self.target_x = 0
+            self.target_y = home_y_center + random.choice([self.target_distance, -self.target_distance]) + 0.1*random.choice([-1, 1])* np.random.random()
+            self.target_x = home_x_center + 0.1*random.choice([-1, 1])* np.random.random()
 
         target_msg = ModelState()
         target_msg.model_name = 'unit_sphere'
@@ -210,12 +222,14 @@ class Game:
         """
             send take-off command
         """
+        self.step_count = 0
+        
         if (random.choice([-1, 1]) == 1):
-            self.target_x = random.choice([self.target_distance, -self.target_distance]) + random.choice([-1, 1])* np.random.random()
-            self.target_y = 0
+            self.target_x = random.choice([self.target_distance, -self.target_distance]) + 0.2*random.choice([-1, 1])* np.random.random()
+            self.target_y = 0.2*random.choice([-1, 1])* np.random.random()
         else:
-            self.target_y = random.choice([self.target_distance, -self.target_distance]) + random.choice([-1, 1])* np.random.random()
-            self.target_x = 0
+            self.target_x = 0.2*random.choice([-1, 1])* np.random.random()
+            self.target_y = random.choice([self.target_distance, -self.target_distance]) + 0.2*random.choice([-1, 1])* np.random.random()
 
         # randomize target point
 
@@ -318,10 +332,10 @@ class Game:
         self.crash_index = -1
 
         for i in range(len(self.scan.ranges)):
-            if self.scan.ranges[i] < 2*self.crash_limit:
-                self.laser_crashed_reward = - 40.0
+            if self.scan.ranges[i] < 1.5*self.crash_limit:
+                self.laser_crashed_reward = min(-2.0, self.laser_crashed_reward)
             if self.scan.ranges[i] < self.crash_limit:
-                self.laser_crashed_reward = - 200.0
+                self.laser_crashed_reward = - 50.0
                 self.laser_crashed_flag = True
                 self.crash_index = i
                 break
@@ -332,6 +346,8 @@ class Game:
         """
             game step
         """
+        self.step_count += 1
+
         self.hold_able = False
         # record last x and y
         last_pos_x_uav = self.pose.position.x
@@ -360,8 +376,8 @@ class Game:
 
         # arrive reward
         self.arrive_reward = 0
-        if cur_distance < 0.5:
-            self.arrive_reward = 100
+        if cur_distance < 0.3:
+            self.arrive_reward = 200
             self.done = True
 
         # crash reward
@@ -372,34 +388,44 @@ class Game:
         # laser reward
         state = np.array(self.scan.ranges) / float(self.scan.range_max)
         # print(state)
-        laser_reward = sum(state) - len(state)
+        # laser_reward = 0.5*(sum(state) - len(state))
+        laser_reward = 0
 
         # linear punish reward
         self.linear_punish_reward_x = 0
         self.linear_punish_reward_y = 0
 
-        if self.body_v.twist.linear.x < 0.2:
-            self.linear_punish_reward_x = -2
+        if self.body_v.twist.linear.x < 0.1:
+            self.linear_punish_reward_x = -1
 
         # angular punish reward
         self.angular_punish_reward = 0
 
-        if self.body_v.twist.angular.z < -0.8:
+        if abs(self.body_v.twist.angular.z) > 0.5:
             self.angular_punish_reward = -1
-        if self.body_v.twist.angular.z > 0.8:
-            self.angular_punish_reward = -1
+        elif abs(self.body_v.twist.angular.z) > 0.8:
+            self.angular_punish_reward = -2
+
+        # step punish reward
+        self.step_punish_reward = -self.step_count * 0.001
+
+        print("distance_reward: ", distance_reward*(5/time_step)*1.2*7, " arrive_reward: ", self.arrive_reward,
+                " crash reward: ", crash_reward, " laser reward: ", laser_reward, " linear punish reward x:", 
+                self.linear_punish_reward_x, " angular punish reward:", self.angular_punish_reward,
+                "step_punish_reward", self.step_punish_reward)
 
         total_reward = distance_reward*(5/time_step)*1.2*7 \
                         + self.arrive_reward \
                         + crash_reward \
                         + laser_reward \
                         + self.linear_punish_reward_x \
-                        + self.angular_punish_reward
+                        + self.angular_punish_reward \
+                        + self.step_punish_reward
 
         self.hold_able = True
 
 
-        return self._cur_state(), total_reward, self.done
+        return self._cur_state(), total_reward/10.0, self.done
 
 
 

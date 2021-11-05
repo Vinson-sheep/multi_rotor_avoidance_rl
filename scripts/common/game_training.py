@@ -39,17 +39,17 @@ class Game:
         self.scan = LaserScan()
         self.body_v = TwistStamped()
 
-        self.crash_limit = 0.30
+        self.crash_limit = 0.25
 
         self.start_flag = False
 
         self.target_x = 10
         self.target_y = 10
 
-        self.state_num = 24+4
+        self.state_num = 35+4
         self.action_num = 2
 
-        self.height = 3.0 # height of taking off
+        self.height = 2.0 # height of taking off
 
         self.target_distance = 7
 
@@ -318,7 +318,7 @@ class Game:
             if self.scan.ranges[i] < 3*self.crash_limit:
                 self.laser_crashed_reward = min(0.0, self.laser_crashed_reward)
             if self.scan.ranges[i] < 2*self.crash_limit:
-                self.laser_crashed_reward = min(-20.0, self.laser_crashed_reward)
+                self.laser_crashed_reward = min(-15.0, self.laser_crashed_reward)
             if self.scan.ranges[i] < self.crash_limit:
                 self.laser_crashed_reward = - 100.0
                 self.laser_crashed_flag = True
@@ -361,7 +361,7 @@ class Game:
 
         # arrive reward
         self.arrive_reward = 0
-        if cur_distance < 0.3:
+        if cur_distance < 0.5:
             self.arrive_reward = 200
             self.done = True
 
@@ -373,23 +373,25 @@ class Game:
         # laser reward
         state = np.array(self.scan.ranges) / float(self.scan.range_max)
         # print(state)
-        laser_reward = sum(state) - len(state)
+        laser_reward = 0.5*(sum(state) - len(state))
 
         # linear punish reward
         self.linear_punish_reward_x = 0
         self.linear_punish_reward_y = 0
 
-        if self.body_v.twist.linear.x < 0.2:
-            self.linear_punish_reward_x = -2
+        if self.body_v.twist.linear.x < 0.1:
+            self.linear_punish_reward_x = -1
 
         # angular punish reward
         self.angular_punish_reward = 0
 
         if abs(self.body_v.twist.angular.z) > 0.5:
-            self.angular_punish_reward = -3
+            self.angular_punish_reward = -1
+        elif abs(self.body_v.twist.angular.z) > 0.8:
+            self.angular_punish_reward = -2
 
         # step punish reward
-        self.step_punish_reward = -self.step_count * 0.002
+        self.step_punish_reward = -self.step_count * 0.005
 
         print("distance_reward: ", distance_reward*(5/time_step)*1.2*7, " arrive_reward: ", self.arrive_reward,
                 " crash reward: ", crash_reward, " laser reward: ", laser_reward, " linear punish reward x:", 
@@ -407,7 +409,7 @@ class Game:
         self.hold_able = True
 
 
-        return self._cur_state(), total_reward, self.done
+        return self._cur_state(), total_reward/10.0, self.done
 
 
 
