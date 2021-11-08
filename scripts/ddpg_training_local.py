@@ -1,19 +1,36 @@
 #! /usr/bin/env python
 #-*- coding: UTF-8 -*- 
 
-import game
+from common import game_training_local as game
 import rospy
 import numpy as np
-from ddpg_PER import Agent
+from ddpg_brain_local import Agent
 import visdom
 import scipy.io as sio
 import os
 import threading
-import time
 
 # hyper parameter
 epsilon = 0.9
 epsilon_decay = 0.99995
+
+load_able = False # True if you want to load previous data
+
+# agent
+gamma = 0.85
+actor_lr = 0.0001
+critic_lr = 0.0001
+tau = 0.01
+buffer_size = 20000
+batch_size = 256
+alpha = 0.3
+hyper_parameters_eps = 0.2
+
+load_buffer_flag = False
+load_model_flag = False
+
+
+# hyper parameter end
 
 x = []
 y = []
@@ -23,19 +40,6 @@ q = []
 step_count_begin = 0
 episode_begin = 0
 agent = None
-load_able = True # True if you want to load previous data
-
-params = {
-        'gamma': 0.90,
-        'actor_lr': 0.0001,
-        'critic_lr': 0.0001,
-        'tau': 0.01,
-        'buffer_size': 100000,
-        'batch_size': 512,
-        'alpha': 0.3,
-        'hyper_parameters_eps': 0.2,
-        'load_data': load_able
-}
 
 viz = visdom.Visdom(env="line")
 
@@ -50,12 +54,12 @@ class myThread(threading.Thread):
 
     def run(self):
         # save mat
-        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/step.mat',{'data': s},True,'5', False, False,'row')
-        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/reward.mat',{'data': r},True,'5', False, False,'row')
-        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/q_value.mat',{'data': q},True,'5', False, False,'row')
-        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/episode.mat',{'data': x},True,'5', False, False,'row')
-        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/total_reward.mat',{'data': y},True,'5', False, False,'row')
-        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/epsilon.mat',{'data': epsilon},True,'5', False, False,'row')
+        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/ddpg_data/local/step.mat',{'data': s},True,'5', False, False,'row')
+        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/ddpg_data/local/reward.mat',{'data': r},True,'5', False, False,'row')
+        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/ddpg_data/local/q_value.mat',{'data': q},True,'5', False, False,'row')
+        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/ddpg_data/local/episode.mat',{'data': x},True,'5', False, False,'row')
+        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/ddpg_data/local/total_reward.mat',{'data': y},True,'5', False, False,'row')
+        sio.savemat(os.path.dirname(os.path.realpath(__file__)) + '/ddpg_data/local/epsilon.mat',{'data': epsilon},True,'5', False, False,'row')
 
         # plot
         viz.line(
@@ -104,19 +108,35 @@ class myThread(threading.Thread):
         rospy.loginfo("save temperory variables, plot, and save models.")
 
 if __name__ == '__main__':
-    rospy.init_node("test")
+    rospy.init_node("training_node")
+
+    # wait for world building
+    rospy.sleep(rospy.Duration(3))
+
     # global env
     env = game.Game("iris_0")
 
+    agent = Agent(**{
+        'gamma': gamma,
+        'actor_lr': actor_lr,
+        'critic_lr': critic_lr,
+        'tau': tau,
+        'buffer_size': buffer_size,
+        'batch_size': batch_size,
+        'alpha': alpha,
+        'hyper_parameters_eps': hyper_parameters_eps,
+        'load_buffer_flag': load_buffer_flag,
+        'load_model_flag': load_model_flag,
+    })
+
     # load data
     if load_able == True:
-        # x = list(sio.loadmat(os.path.dirname(os.path.realpath(__file__)) + '/episode.mat')['data'])[0]
-        x = list(sio.loadmat(os.path.dirname(os.path.realpath(__file__)) + '/episode.mat')['data'][0])
-        y = list(sio.loadmat(os.path.dirname(os.path.realpath(__file__)) + '/total_reward.mat')['data'][0])
-        r = list(sio.loadmat(os.path.dirname(os.path.realpath(__file__)) + '/reward.mat')['data'][0])
-        s = list(sio.loadmat(os.path.dirname(os.path.realpath(__file__)) + '/step.mat')['data'][0])
-        q = list(sio.loadmat(os.path.dirname(os.path.realpath(__file__)) + '/q_value.mat')['data'][0])
-        epsilon = list(sio.loadmat(os.path.dirname(os.path.realpath(__file__)) + '/epsilon.mat')['data'][0])[0]
+        x = list(sio.loadmat(os.path.dirname(os.path.realpath(__file__)) + '/ddpg_data/local/episode.mat')['data'][0])
+        y = list(sio.loadmat(os.path.dirname(os.path.realpath(__file__)) + '/ddpg_data/local/total_reward.mat')['data'][0])
+        r = list(sio.loadmat(os.path.dirname(os.path.realpath(__file__)) + '/ddpg_data/local/reward.mat')['data'][0])
+        s = list(sio.loadmat(os.path.dirname(os.path.realpath(__file__)) + '/ddpg_data/local/step.mat')['data'][0])
+        q = list(sio.loadmat(os.path.dirname(os.path.realpath(__file__)) + '/ddpg_data/local/q_value.mat')['data'][0])
+        epsilon = list(sio.loadmat(os.path.dirname(os.path.realpath(__file__)) + '/ddpg_data/local/epsilon.mat')['data'][0])[0]
         print("restore epsilon:", epsilon)
 
         if len(r) > 0:
@@ -126,12 +146,9 @@ if __name__ == '__main__':
             episode_begin = x[-1] + 1
             print("restore episode:", episode_begin)
 
+    
 
-    # plotTimer = rospy.Timer(rospy.Duration(60), plotCB)
-
-    agent = Agent(**params)
-
-    for episode in range(episode_begin, 1000):
+    for episode in range(episode_begin, 500):
         if episode == episode_begin:
             s0 = env.start()
             print("start!")
@@ -149,7 +166,7 @@ if __name__ == '__main__':
 
             # E-greedy
             if epsilon > np.random.random():
-                a0[0] += np.random.random()*0.4
+                a0[0] += np.random.random()*0.2
                 a0[1] += (np.random.random()-0.5)*0.4
 
                 a0[0] = limit(a0[0], 1.0, 0.0)
@@ -160,7 +177,7 @@ if __name__ == '__main__':
             print("eps = ", epsilon)
 
             begin_time = rospy.Time.now()
-            s1, r1, done = env.step(0.1, 0.5*a0[0], 0, a0[1])
+            s1, r1, done = env.step(0.1, 0.3*a0[0], 0, a0[1])
             q_value = agent.put(s0, a0, r1, s1, done)
             
             r.append(r1)

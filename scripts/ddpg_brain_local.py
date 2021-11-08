@@ -13,13 +13,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from prioritized_replay_buffer import PrioritizedReplayBuffer
+from common.prioritized_replay_buffer import PrioritizedReplayBuffer
 import os
 
 class Actor(nn.Module):
     def __init__(self):
         super(Actor, self).__init__()
-        self.linear1 = nn.Linear(24+4, 500)
+        self.linear1 = nn.Linear(35+4, 500)
         self.linear2 = nn.Linear(500, 500)
         self.linear3 = nn.Linear(500, 500)
         self.linear_vx = nn.Linear(500, 1)
@@ -40,7 +40,7 @@ class Actor(nn.Module):
 class Critic(nn.Module):
     def __init__(self):
         super(Critic, self).__init__()
-        self.linear1 = nn.Linear(24+4, 500)
+        self.linear1 = nn.Linear(35+4, 500)
         self.linear2 = nn.Linear(500+2, 500)
         self.linear3 = nn.Linear(500, 500)
         self.linear4 = nn.Linear(500, 1)
@@ -69,13 +69,16 @@ class Agent(object):
         self.buffer = PrioritizedReplayBuffer(self.buffer_size, self.batch_size)
 
         # load and save
-        self.actor_load_url = os.path.dirname(os.path.realpath(__file__)) + "/actor_model.pkl"
-        self.critic_load_url = os.path.dirname(os.path.realpath(__file__)) + "/critic_model.pkl"
-        self.actor_save_url = os.path.dirname(os.path.realpath(__file__)) + "/actor_model.pkl"
-        self.critic_save_url = os.path.dirname(os.path.realpath(__file__)) + "/critic_model.pkl"
+        self.actor_load_url = os.path.dirname(os.path.realpath(__file__)) + "/ddpg_data/local/actor_model.pkl"
+        self.critic_load_url = os.path.dirname(os.path.realpath(__file__)) + "/ddpg_data/local/critic_model.pkl"
+        self.actor_save_url = os.path.dirname(os.path.realpath(__file__)) + "/ddpg_data/local/actor_model.pkl"
+        self.critic_save_url = os.path.dirname(os.path.realpath(__file__)) + "/ddpg_data/local/critic_model.pkl"
 
-        if self.load_data == True:
+        if self.load_model_flag == True:
             self.load_model()
+
+        if self.load_buffer_flag == True:
+            self.buffer.load()
 
         self.actor_target.load_state_dict(self.actor.state_dict())
         self.critic_target.load_state_dict(self.critic.state_dict())
@@ -141,7 +144,8 @@ class Agent(object):
             # update priorities
             priorities = (((y_true - y_pred).detach()**2)*self.alpha).cpu().squeeze(1).numpy() + self.hyper_parameters_eps
             self.buffer.update_priorities(indices, priorities)
-            
+        
+
         def actor_learn():
             loss = -torch.mean( self.critic(s0, self.actor(s0)) )
             self.actor_optim.zero_grad()
@@ -153,19 +157,19 @@ class Agent(object):
                 target_param.data.copy_(target_param.data * (1.0 - tau) + param.data * tau)
     
         critic_learn()
-        if not self.fix_actor:
-            actor_learn()
+        actor_learn()
         soft_update(self.critic_target, self.critic, self.tau)
-        if not self.fix_actor:
-            soft_update(self.actor_target, self.actor, self.tau)
+        soft_update(self.actor_target, self.actor, self.tau)
     
     def save_data(self):
         torch.save(self.actor, self.actor_save_url)
         torch.save(self.critic, self.critic_save_url)
+        self.buffer.save()
 
     def load_model(self):
         self.actor = torch.load(self.actor_load_url)
         self.critic = torch.load(self.critic_load_url)
+        
 
         
                                            

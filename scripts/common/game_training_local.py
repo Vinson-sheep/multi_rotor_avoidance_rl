@@ -332,10 +332,10 @@ class Game:
         self.crash_index = -1
 
         for i in range(len(self.scan.ranges)):
-            if self.scan.ranges[i] < 1.5*self.crash_limit:
+            if self.scan.ranges[i] < 2*self.crash_limit:
                 self.laser_crashed_reward = min(-2.0, self.laser_crashed_reward)
             if self.scan.ranges[i] < self.crash_limit:
-                self.laser_crashed_reward = - 50.0
+                self.laser_crashed_reward = - 70.0
                 self.laser_crashed_flag = True
                 self.crash_index = i
                 break
@@ -402,19 +402,19 @@ class Game:
         self.angular_punish_reward = 0
 
         if abs(self.body_v.twist.angular.z) > 0.5:
-            self.angular_punish_reward = -1
+            self.angular_punish_reward = -0.5
         elif abs(self.body_v.twist.angular.z) > 0.8:
             self.angular_punish_reward = -2
 
         # step punish reward
         self.step_punish_reward = -self.step_count * 0.001
 
-        print("distance_reward: ", distance_reward*(5/time_step)*1.2*7, " arrive_reward: ", self.arrive_reward,
+        print("distance_reward: ", distance_reward*(5/time_step)*2*7, " arrive_reward: ", self.arrive_reward,
                 " crash reward: ", crash_reward, " laser reward: ", laser_reward, " linear punish reward x:", 
                 self.linear_punish_reward_x, " angular punish reward:", self.angular_punish_reward,
                 "step_punish_reward", self.step_punish_reward)
 
-        total_reward = distance_reward*(5/time_step)*1.2*7 \
+        total_reward = distance_reward*(5/time_step)*2*7 \
                         + self.arrive_reward \
                         + crash_reward \
                         + laser_reward \
@@ -425,7 +425,7 @@ class Game:
         self.hold_able = True
 
 
-        return self._cur_state(), total_reward/10.0, self.done
+        return self._cur_state(), total_reward, self.done
 
 
 
@@ -577,7 +577,7 @@ class Game:
         state[-3] = self.body_v.twist.angular.z/math.pi
         # relative distance and normalize
         # /10 here is to cut down magnitude of distance
-        distance_uav_target =  math.sqrt((self.target_x - self.pose.position.x)**2 + (self.target_y - self.pose.position.y)**2)/10
+        distance_uav_target =  math.sqrt((self.target_x - self.pose.position.x)**2 + (self.target_y - self.pose.position.y)**2)
         # distance_uav_target = (2*distance_uav_target - self.scan.range_max)/self.scan.range_max
         # relative angular difference and normalize
         angle_uav_targer = atan2(self.target_y - self.pose.position.y, self.target_x - self.pose.position.x)

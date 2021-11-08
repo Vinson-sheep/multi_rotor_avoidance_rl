@@ -62,7 +62,7 @@ if __name__ == '__main__':
     # wait for world building
     rospy.sleep(rospy.Duration(3))
 
-    agent = Agent(**params)
+    agent1 = Agent(**params)
 
     # load data
     if restore_able == True:

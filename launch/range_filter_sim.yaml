@@ -20,4 +20,4 @@ scan_filter_chain:
     lower_threshold: 0.14           # if not specified defaults to 0.0
     upper_threshold: 3.5             # if not specified defaults to 100000.0
     lower_replacement_value: 0.14    # if not specified defaults to NaN
-    upper_replacement_value: 3.15   # if not specified defaults to NaN
+    upper_replacement_value: 3.5   # if not specified defaults to NaN
