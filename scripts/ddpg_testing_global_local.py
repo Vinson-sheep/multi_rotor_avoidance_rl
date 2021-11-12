@@ -1,10 +1,11 @@
 #! /usr/bin/env python
 #-*- coding: UTF-8 -*- 
 
-import common.game_testing as game
+import common.game_testing_global as game
 import rospy
 import numpy as np
-from ddpg_brain import Agent
+import ddpg_brain_global
+import ddpg_brain_local
 import scipy.io as sio
 import os
 import pickle
@@ -17,17 +18,7 @@ cur_success_num = 0
 restore_able = True
 testing_num_begin = 0
 
-params = {
-    'gamma': 0.90,
-    'actor_lr': 0.0001,
-    'critic_lr': 0.0001,
-    'tau': 0.01,
-    'buffer_size': 100000,
-    'batch_size': 512,
-    'alpha': 0.3,
-    'hyper_parameters_eps': 0.2,
-    'load_data': True
-}
+
 
 def save():
 
@@ -62,7 +53,21 @@ if __name__ == '__main__':
     # wait for world building
     rospy.sleep(rospy.Duration(3))
 
-    agent1 = Agent(**params)
+    params = {
+        'gamma': 0,
+        'actor_lr': 0,
+        'critic_lr': 0,
+        'tau': 0,
+        'buffer_size': 0,
+        'batch_size': 0,
+        'alpha': 0,
+        'hyper_parameters_eps': 0,
+        'load_buffer_flag': False,
+        'load_model_flag': True,
+    }
+
+    agent_local = ddpg_brain_local.Agent(**params)
+    agent_global = ddpg_brain_global.Agent(**params)
 
     # load data
     if restore_able == True:
@@ -83,24 +88,50 @@ if __name__ == '__main__':
             s0 = env.reset()
             print("restore testing.")
 
+        local_flag = False # True if using local RL network
+        turning_flag = False # True if pose had been changed
+        print("turning.")
+
         for step in range(500):
             
-            a0 = agent.act(s0)
-
-            s1, _, done = env.step(0.1, 0.5*a0[0], 0, a0[1])
-
-            s0 = s1
-
-            crash_indicator, _, _ = env.is_crashed()
-                
-
-            if done == True:
-                if crash_indicator == True:
-                    print("crashed!")
+            # if need turning
+            if (turning_flag == False):
+                if (s0[-1] < 0.1):
+                    s1, _, _ = env.step(0.1, 0, 0, s0[-1])
+                    s0 = s1
+                    continue
                 else:
-                    cur_success_num += 1
-                    print("arrived")
-                break
+                    turning_flag = True
+                    print("global control")
+
+            else:
+                # global RL network control
+                if (local_flag == False):
+                    a0 = agent_global.act(s0)
+                    s1, _, done = env.step(0.1, 0.5*a0[0], 0, a0[1])
+                    # if uav is arrived to limiation, change to local control
+                    if (s1[-2]*10 < 1.5):
+                        local_flag = True
+                        s1[-2] = s1[-2]*10  # change global s to local
+                        print("local control.")
+                    
+                            
+                # local RL network control
+                else:
+                    a0 = agent_local.act(s0)
+                    s1, _, done = env.step(0.1, 0.3*a0[0], 0, a0[1])
+            
+                s0 = s1
+                crash_indicator, _, _ = env.is_crashed()
+
+                if done == True:
+                    if crash_indicator == True:
+                        print("crashed!")
+                    else:
+                        cur_success_num += 1
+                        print("arrived")
+                    break
+                    
 
         print('[' + str(episode) + ']', ' success_rate:', float(cur_success_num)/float(max_testing_num) * 100, "%")
 

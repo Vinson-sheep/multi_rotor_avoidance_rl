@@ -14,21 +14,21 @@ import threading
 epsilon = 0.9
 epsilon_decay = 0.99995
 
-load_able = False # True if you want to load previous data
+load_able = True # True if you want to load previous data
 
 # agent
-gamma = 0.85
-actor_lr = 0.0001
-critic_lr = 0.0001
+gamma = 0.9
+actor_lr = 0.001
+critic_lr = 0.001
 tau = 0.01
 buffer_size = 20000
-batch_size = 256
+batch_size = 512
 alpha = 0.3
 hyper_parameters_eps = 0.2
 
-load_buffer_flag = False
-load_model_flag = False
-
+load_buffer_flag = True
+load_model_flag = True
+load_optim_flag = True
 
 # hyper parameter end
 
@@ -127,6 +127,7 @@ if __name__ == '__main__':
         'hyper_parameters_eps': hyper_parameters_eps,
         'load_buffer_flag': load_buffer_flag,
         'load_model_flag': load_model_flag,
+        'load_optim_flag': load_optim_flag
     })
 
     # load data
@@ -177,20 +178,19 @@ if __name__ == '__main__':
             print("eps = ", epsilon)
 
             begin_time = rospy.Time.now()
+
             s1, r1, done = env.step(0.1, 0.3*a0[0], 0, a0[1])
             q_value = agent.put(s0, a0, r1, s1, done)
             
             r.append(r1)
             q.append(q_value)
 
-            end_time = rospy.Time.now()
-
             episode_reward += r1
             s0 = s1
 
-            begin_time = rospy.Time.now()
+            print(s0)
+
             agent.learn()
-            end_time = rospy.Time.now()
 
             if done:
                 break

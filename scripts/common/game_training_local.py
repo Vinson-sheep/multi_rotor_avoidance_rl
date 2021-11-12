@@ -1,6 +1,5 @@
 #! /usr/bin/env python
 #-*- coding: UTF-8 -*- 
-from __future__ import print_function 
 from math import atan2
 import rospy
 from rospy.client import spin
@@ -333,9 +332,9 @@ class Game:
 
         for i in range(len(self.scan.ranges)):
             if self.scan.ranges[i] < 2*self.crash_limit:
-                self.laser_crashed_reward = min(-2.0, self.laser_crashed_reward)
+                self.laser_crashed_reward = -20
             if self.scan.ranges[i] < self.crash_limit:
-                self.laser_crashed_reward = - 70.0
+                self.laser_crashed_reward = -100
                 self.laser_crashed_flag = True
                 self.crash_index = i
                 break
@@ -376,7 +375,7 @@ class Game:
 
         # arrive reward
         self.arrive_reward = 0
-        if cur_distance < 0.3:
+        if cur_distance < 0.5:
             self.arrive_reward = 200
             self.done = True
 
@@ -387,8 +386,7 @@ class Game:
 
         # laser reward
         state = np.array(self.scan.ranges) / float(self.scan.range_max)
-        # print(state)
-        # laser_reward = 0.5*(sum(state) - len(state))
+
         laser_reward = 0
 
         # linear punish reward
@@ -404,10 +402,10 @@ class Game:
         if abs(self.body_v.twist.angular.z) > 0.5:
             self.angular_punish_reward = -0.5
         elif abs(self.body_v.twist.angular.z) > 0.8:
-            self.angular_punish_reward = -2
+            self.angular_punish_reward = -1
 
         # step punish reward
-        self.step_punish_reward = -self.step_count * 0.001
+        self.step_punish_reward = -self.step_count * 0.01
 
         print("distance_reward: ", distance_reward*(5/time_step)*2*7, " arrive_reward: ", self.arrive_reward,
                 " crash reward: ", crash_reward, " laser reward: ", laser_reward, " linear punish reward x:", 
@@ -425,7 +423,7 @@ class Game:
         self.hold_able = True
 
 
-        return self._cur_state(), total_reward, self.done
+        return self._cur_state(), total_reward/10, self.done
 
 
 
@@ -572,14 +570,12 @@ class Game:
             state[i] = cur_ranges[i]
 
         # pose msg
-        state[-5] = (self.body_v.twist.linear.x - 0.5)/0.5
+        state[-5] = self.body_v.twist.linear.x
         state[-4] = self.body_v.twist.linear.y
         state[-3] = self.body_v.twist.angular.z/math.pi
-        # relative distance and normalize
-        # /10 here is to cut down magnitude of distance
+        # relative distance
         distance_uav_target =  math.sqrt((self.target_x - self.pose.position.x)**2 + (self.target_y - self.pose.position.y)**2)
-        # distance_uav_target = (2*distance_uav_target - self.scan.range_max)/self.scan.range_max
-        # relative angular difference and normalize
+        # relative angular difference
         angle_uav_targer = atan2(self.target_y - self.pose.position.y, self.target_x - self.pose.position.x)
         (_, _, angle_uav) = euler_from_quaternion([
                                                 self.pose.orientation.x,

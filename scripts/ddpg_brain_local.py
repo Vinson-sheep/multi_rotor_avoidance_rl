@@ -6,6 +6,7 @@ __version__ = '1.0.0'
 
 # import gym
 import math
+from pickle import load
 import random
 import numpy as np
 # import matplotlib.pyplot as plt
@@ -74,11 +75,17 @@ class Agent(object):
         self.actor_save_url = os.path.dirname(os.path.realpath(__file__)) + "/ddpg_data/local/actor_model.pkl"
         self.critic_save_url = os.path.dirname(os.path.realpath(__file__)) + "/ddpg_data/local/critic_model.pkl"
 
+        self.optim_load_url = os.path.dirname(os.path.realpath(__file__)) + "/ddpg_data/local/optim.pth"
+        self.optim_save_url = os.path.dirname(os.path.realpath(__file__)) + "/ddpg_data/local/optim.pth"
+
         if self.load_model_flag == True:
             self.load_model()
 
         if self.load_buffer_flag == True:
             self.buffer.load()
+
+        if self.load_optim_flag == True:
+            self.load_optim()
 
         self.actor_target.load_state_dict(self.actor.state_dict())
         self.critic_target.load_state_dict(self.critic.state_dict())
@@ -166,9 +173,23 @@ class Agent(object):
         torch.save(self.critic, self.critic_save_url)
         self.buffer.save()
 
+        optim_data = {
+            'actor_optim': self.actor_optim.state_dict(),
+            'critic_optim': self.critic_optim.state_dict()
+        }
+
+        torch.save(optim_data, self.optim_save_url)
+        
+
     def load_model(self):
         self.actor = torch.load(self.actor_load_url)
         self.critic = torch.load(self.critic_load_url)
+
+    def load_optim(self):
+        optim_data = torch.load(self.optim_load_url)
+        self.actor_optim.load_state_dict(optim_data["actor_optim"])
+        self.critic_optim.load_state_dict(optim_data["critic_optim"])
+
         
 
         
