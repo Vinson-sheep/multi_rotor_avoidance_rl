@@ -7,15 +7,15 @@
     <!-- vehicle pose -->
     <arg name="x" default="0"/>
     <arg name="y" default="0"/>
-    <arg name="z" default="0.5"/>
+    <arg name="z" default="0.3"/>
     <arg name="R" default="0"/>
     <arg name="P" default="0"/>
-    <arg name="Y" default="1"/>
+    <arg name="Y" default="0"/>
     <!-- vehicle model and world -->
     <arg name="est" default="ekf2"/>
     <arg name="vehicle" default="iris"/>
-    <arg name="world" default="$(find multi_rotor_avoidance_rl)/worlds/corridor.world"/>
-    <arg name="sdf" default="$(find mavlink_sitl_gazebo)/models/falco_01/urdf/falco_01.sdf"/>
+    <arg name="world" default="$(find multi_rotor_avoidance_rl)/worlds/empty.world"/>
+    <arg name="sdf" default="$(find mavlink_sitl_gazebo)/models/falco/urdf/falco.sdf"/>
 
     <!-- gazebo configs -->
     <arg name="gui" default="true"/>
@@ -66,7 +66,5 @@
 
 
     <node pkg="multi_rotor_avoidance_rl" type="laser_filter_downsample.py" name="laser_filter_downsameple" />
-
-    <!-- <node pkg="multi_rotor_avoidance_rl" type="ddpg_testing.py" name="ddpg_training" /> -->
 
 </launch>

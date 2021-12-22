@@ -1,7 +1,0 @@
-<launch>
-  <node pkg="laser_filters" type="scan_to_scan_filter_chain" name="laser_filter">
-    <rosparam command="load" file="$(find multi_rotor_avoidance_rl)/launch/range_filter_sim.yaml" />
-    <remap from="scan" to="/iris_0/scan" />
-    <remap from="scan_filtered" to="/iris_0/scan_filtered" />
-  </node>
-</launch>
