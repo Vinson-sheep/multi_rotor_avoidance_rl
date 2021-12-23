@@ -14,16 +14,17 @@ import threading
 
 # hyper parameter
 epsilon = 0.9
-epsilon_decay = 0.99993
+epsilon_decay = 0.99992
 
 load_able = False # True if you want to load previous data
 
-policy = "DDPG" # DDPG or TD3
+policy = "TD3" # DDPG or TD3
 game_name = "empty_3m" # empty_?m / train_env_?m
 
 # DDPG and TD3 params
 state_dim = 39
 action_dim = 2
+hidden_dim = 500
 
 discount = 0.99
 actor_lr = 0.00001
@@ -44,6 +45,8 @@ load_buffer_flag = False
 load_actor_flag = False
 load_critic_flag = False
 fix_actor_flag = False
+
+max_episode = 50
 
 # variable
 e = []
@@ -119,6 +122,7 @@ if __name__ == '__main__':
     kwargs = {
         'state_dim': state_dim,
         'action_dim': action_dim,
+        'hidden_dim': hidden_dim,
         'discount': discount,
         'actor_lr': actor_lr,
         'critic_lr': critic_lr,
@@ -175,7 +179,7 @@ if __name__ == '__main__':
             print("restore episode:", episode_begin)
 
     # start to train
-    for episode in range(episode_begin, 100):
+    for episode in range(episode_begin, 40):
 
         if episode == episode_begin:
             s0 = env.start()

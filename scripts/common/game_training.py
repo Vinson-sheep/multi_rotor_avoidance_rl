@@ -71,15 +71,15 @@ class Game:
             self.home_list = [0]
             self.target_list = [-10, 10]
             self.target_distance = 10
-        if (game_name == "train_3m"):
+        if (game_name == "train_env_3m"):
             self.home_list = [-9, -6, -3, 0, 3, 6, 9]
             self.target_list = self.home_list
             self.target_distance = 3
-        if (game_name == "train_7m"):
+        if (game_name == "train_env_7m"):
             self.home_list = [-7, 0, 7]
             self.target_list = self.home_list
             self.target_distance = 7
-        if (game_name == "train_10m"):
+        if (game_name == "train_env_10m"):
             self.home_list = [-10, 0, 10]
             self.target_list = self.home_list
             self.target_distance = 10
@@ -235,8 +235,12 @@ class Game:
         
 
         # randomize target point
-        self.target_x = random.choice([self.target_distance, -self.target_distance]) + random.choice([-1, 1])* np.random.random()
-        self.target_y = random.choice([self.target_distance, -self.target_distance]) + random.choice([-1, 1])* np.random.random()
+        self.target_x = random.choice([self.target_distance, -self.target_distance])
+        self.target_y = random.choice([self.target_distance, -self.target_distance])
+        while (not self.target_x in self.target_list):
+            self.target_x = random.choice([self.target_distance, -self.target_distance])
+        while (not self.target_y in self.target_list):
+            self.target_y = random.choice([self.target_distance, -self.target_distance])
 
         target_msg = ModelState()
         target_msg.model_name = 'unit_sphere'
@@ -338,11 +342,11 @@ class Game:
 
         for i in range(len(self.scan.ranges)):
             if self.scan.ranges[i] < 3*self.crash_limit:
-                self.laser_crashed_reward = min(0.0, self.laser_crashed_reward)
+                self.laser_crashed_reward = min(-1.0, self.laser_crashed_reward)
             if self.scan.ranges[i] < 2*self.crash_limit:
                 self.laser_crashed_reward = min(-20.0, self.laser_crashed_reward)
             if self.scan.ranges[i] < self.crash_limit:
-                self.laser_crashed_reward = - 100.0
+                self.laser_crashed_reward = -100.0
                 self.laser_crashed_flag = True
                 self.crash_index = i
                 break
@@ -413,7 +417,7 @@ class Game:
             self.angular_punish_reward = -2
 
         # step punish reward
-        self.step_punish_reward = -self.step_count * 0.005
+        self.step_punish_reward = -self.step_count * 0.008
 
         print("distance_reward: ", distance_reward*(5/time_step)*1.2*7, " arrive_reward: ", self.arrive_reward,
                 " crash reward: ", crash_reward, " laser reward: ", laser_reward, " linear punish reward x:", 
