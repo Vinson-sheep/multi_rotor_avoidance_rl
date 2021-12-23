@@ -179,7 +179,7 @@ if __name__ == '__main__':
             print("restore episode:", episode_begin)
 
     # start to train
-    for episode in range(episode_begin, 40):
+    for episode in range(episode_begin, 50):
 
         if episode == episode_begin:
             s0 = env.start()
