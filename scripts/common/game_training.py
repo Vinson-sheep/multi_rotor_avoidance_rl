@@ -342,7 +342,7 @@ class Game:
 
         for i in range(len(self.scan.ranges)):
             if self.scan.ranges[i] < 3*self.crash_limit:
-                self.laser_crashed_reward = min(-1.0, self.laser_crashed_reward)
+                self.laser_crashed_reward = min(-1, self.laser_crashed_reward)
             if self.scan.ranges[i] < 2*self.crash_limit:
                 self.laser_crashed_reward = min(-20.0, self.laser_crashed_reward)
             if self.scan.ranges[i] < self.crash_limit:
@@ -399,7 +399,7 @@ class Game:
         # laser reward
         state = np.array(self.scan.ranges) / float(self.scan.range_max)
         # print(state)
-        laser_reward = 0.5*(sum(state) - len(state))
+        laser_reward = 0.3*(sum(state) - len(state))
 
         # linear punish reward
         self.linear_punish_reward_x = 0
@@ -417,7 +417,7 @@ class Game:
             self.angular_punish_reward = -2
 
         # step punish reward
-        self.step_punish_reward = -self.step_count * 0.008
+        self.step_punish_reward = -self.step_count * 0.04
 
         print("distance_reward: ", distance_reward*(5/time_step)*1.2*7, " arrive_reward: ", self.arrive_reward,
                 " crash reward: ", crash_reward, " laser reward: ", laser_reward, " linear punish reward x:", 
@@ -435,7 +435,7 @@ class Game:
         self.hold_able = True
 
 
-        return self._cur_state(), total_reward/10.0, self.done
+        return self._cur_state(), total_reward/20.0, self.done
 
 
 

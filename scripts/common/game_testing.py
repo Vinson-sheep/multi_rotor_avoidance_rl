@@ -522,7 +522,7 @@ class Game:
 if __name__ == '__main__':
     rospy.init_node("test")
 
-    game = Game("iris_0", cluster)
+    game = Game("iris_0", "cluster")
     game.start()
     for i in range(100):    
         for j in range(50):

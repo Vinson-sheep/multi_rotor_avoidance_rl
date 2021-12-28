@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 #-*- coding: UTF-8 -*- 
 
+from pickle import TRUE
 from common.game_training import Game
 import rospy
 import DDPG
@@ -14,21 +15,24 @@ import threading
 
 # hyper parameter
 epsilon = 0.9
-epsilon_decay = 0.99992
+epsilon_decay = 0.99995
 
-load_able = False # True if you want to load previous data
+load_able = True # True if you want to load previous data
 
 policy = "TD3" # DDPG or TD3
-game_name = "empty_3m" # empty_?m / train_env_?m
+game_name = "train_env_10m" # empty_?m / train_env_?m
 
 # DDPG and TD3 params
 state_dim = 39
 action_dim = 2
-hidden_dim = 500
+# hidden_dim = 500
+hidden_dim = 300
 
 discount = 0.99
-actor_lr = 0.00001
-critic_lr = 0.00001
+# actor_lr = 1e-4
+# critic_lr = 1e-2
+actor_lr = 3e-4
+critic_lr = 3e-4
 tau = 0.01
 buffer_size = 20000
 batch_size = 512
@@ -36,17 +40,18 @@ alpha = 0.3
 hyper_parameters_eps = 1.0
 
 # td3 excluded
-policy_noise =0.2
+policy_noise = 0.2
 noise_clip = 0.5
 policy_freq = 2
 
 # game params
-load_buffer_flag = False
-load_actor_flag = False
-load_critic_flag = False
+load_buffer_flag = True
+load_actor_flag = True
+load_critic_flag = True
+load_optim_flag = True
 fix_actor_flag = False
 
-max_episode = 50
+max_episode = 150
 
 # variable
 e = []
@@ -133,10 +138,11 @@ if __name__ == '__main__':
         'hyper_parameters_eps': hyper_parameters_eps,
         'policy_noise': policy_noise,
         'noise_clip': noise_clip,
-        'policy_freq': 2,
+        'policy_freq': policy_freq,
         'load_buffer_flag': load_buffer_flag,
         'load_actor_flag': load_actor_flag,
         'load_critic_flag': load_critic_flag,
+        'load_optim_flag': load_optim_flag,
         'fix_actor_flag': fix_actor_flag
     }
 
@@ -179,7 +185,7 @@ if __name__ == '__main__':
             print("restore episode:", episode_begin)
 
     # start to train
-    for episode in range(episode_begin, 50):
+    for episode in range(episode_begin, max_episode):
 
         if episode == episode_begin:
             s0 = env.start()
@@ -190,19 +196,17 @@ if __name__ == '__main__':
 
         episode_reward = 0
 
-        for step in range(300):
+        for step in range(500):
 
             step_count_begin += 1
             s.append(step_count_begin)
 
             a0 = agent.act(s0)
 
-            print(a0)
-
             # E-greedy
             if epsilon > np.random.random():
-                a0[0] = np.clip(a0[0] + np.random.random()*0.5, -1.0, 1.0)
-                a0[1] = np.clip(a0[1] + np.random.random()*0.5, -1.0, 1.0)
+                a0[0] = np.clip(a0[0] + np.random.choice([-1, 1])* np.random.random()*0.5, -1.0, 1.0)
+                a0[1] = np.clip(a0[1] + np.random.choice([-1, 1])* np.random.random()*0.5, -1.0, 1.0)
 
             epsilon = max(epsilon_decay*epsilon, 0.10)
             

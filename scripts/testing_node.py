@@ -14,12 +14,14 @@ max_testing_num = 100
 
 restore_able = False
 
-policy = "DDPG" # DDPG or TD3
+policy = "TD3" # DDPG or TD3
 game_name = "corridor" # corridor / cluster
 
 # DDPG and TD3 params
 state_dim = 39
 action_dim = 2
+# hidden_dim = 500
+hidden_dim = 300
 
 # variable
 testing_num_begin = 0
@@ -70,6 +72,7 @@ if __name__ == '__main__':
     kwargs = {
         'state_dim': state_dim,
         'action_dim': action_dim,
+        'hidden_dim': hidden_dim,
         'discount': 0,
         'actor_lr': 0,
         'critic_lr': 0,
@@ -84,6 +87,7 @@ if __name__ == '__main__':
         'load_buffer_flag': False,
         'load_actor_flag': True,
         'load_critic_flag': False,
+        'load_optim_flag': False,
         'fix_actor_flag': True
     }
 

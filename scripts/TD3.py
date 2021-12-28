@@ -118,7 +118,7 @@ class Agent(object):
 
         Q = self.critic.Q1(state, action).detach()
 
-        self.buffer.add(transition, 10000.0)
+        self.buffer.add(transition, 100000.0)
 
         return Q.cpu().item()
 
@@ -170,8 +170,10 @@ class Agent(object):
         self.critic_optimizer.step()
 
         # update priorities
+        # priorities = (((current_Q1 - target_Q).detach()**2)*self.alpha).cpu().squeeze(1).numpy() \
+                    # + (((current_Q2 - target_Q).detach()**2)*self.alpha).cpu().squeeze(1).numpy() \
+                    # + self.hyper_parameters_eps
         priorities = (((current_Q1 - target_Q).detach()**2)*self.alpha).cpu().squeeze(1).numpy() \
-                    + (((current_Q2 - target_Q).detach()**2)*self.alpha).cpu().squeeze(1).numpy() \
                     + self.hyper_parameters_eps
         self.buffer.update_priorities(indices, priorities)
 
@@ -182,6 +184,7 @@ class Agent(object):
             if (self.fix_actor_flag == False):
                 # Compute actor loss
                 actor_loss = -self.critic.Q1(state, self.actor(state)).mean()
+                print("actor loss: ", actor_loss.item())
                 # Optimize the actor 
                 self.actor_optimizer.zero_grad()
                 actor_loss.backward()
@@ -212,15 +215,18 @@ class Agent(object):
 
         if self.load_critic_flag == True:
             self.critic.load_state_dict(torch.load(filename + "_critic.pkl"))
-            self.critic_optimizer.load_state_dict(torch.load(filename + "_critic_optimizer.pth"))
             self.critic_target = copy.deepcopy(self.critic)
             print("load critic model.")
 
         if self.load_actor_flag == True:
             self.actor.load_state_dict(torch.load(filename + "_actor.pkl"))
-            self.actor_optimizer.load_state_dict(torch.load(filename + "_actor_optimizer.pth"))
             self.actor_target = copy.deepcopy(self.actor)
             print("load actor model.")
+
+        if self.load_optim_flag == True:
+            self.critic_optimizer.load_state_dict(torch.load(filename + "_critic_optimizer.pth"))
+            self.actor_optimizer.load_state_dict(torch.load(filename + "_actor_optimizer.pth"))
+            print("load optimizer.")
 
         if self.load_buffer_flag == True:
             self.buffer.load()

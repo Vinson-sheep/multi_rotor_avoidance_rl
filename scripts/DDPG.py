@@ -76,8 +76,6 @@ class Agent(object):
 
         self.load(os.path.dirname(os.path.realpath(__file__)) + '/data/DDPG/DDPG')
 
-        self.total_it = 0
-
         
     def act(self, state):
         state = torch.FloatTensor(state.reshape(1, -1)).to(device)
@@ -96,14 +94,12 @@ class Agent(object):
 
         Q = self.critic(state, action).detach()
 
-        self.buffer.add(transition, 10000.0)
+        self.buffer.add(transition, 100000.0)
 
         return Q.cpu().item()
 
 
     def learn(self):
-        
-        self.total_it += 1
 
         if not self.buffer.sample_available():
             return
@@ -145,6 +141,7 @@ class Agent(object):
         if (self.fix_actor_flag == False):
             # Compute actor loss
             actor_loss = -self.critic(state, self.actor(state)).mean()
+            print("actor loss: ", actor_loss.item())
 
             # Optimize the actor 
             self.actor_optimizer.zero_grad()
@@ -176,19 +173,23 @@ class Agent(object):
 
         if self.load_critic_flag == True:
             self.critic.load_state_dict(torch.load(filename + "_critic.pkl"))
-            self.critic_optimizer.load_state_dict(torch.load(filename + "_critic_optimizer.pth"))
             self.critic_target = copy.deepcopy(self.critic)
             print("load critic model.")
 
         if self.load_actor_flag == True:
             self.actor.load_state_dict(torch.load(filename + "_actor.pkl"))
-            self.actor_optimizer.load_state_dict(torch.load(filename + "_actor_optimizer.pth"))
             self.actor_target = copy.deepcopy(self.actor)
             print("load actor model.")
+
+        if self.load_optim_flag == True:
+            self.critic_optimizer.load_state_dict(torch.load(filename + "_critic_optimizer.pth"))
+            self.actor_optimizer.load_state_dict(torch.load(filename + "_actor_optimizer.pth"))
+            print("load optimizer.")
 
         if self.load_buffer_flag == True:
             self.buffer.load()
             print("load buffer data.")
+
 
         
 
