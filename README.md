@@ -1,4 +1,4 @@
-# Multi-Rotor Obstacle Avoidance : Reinfocement Learning 1.1.2
+# Multi-Rotor Obstacle Avoidance : Reinfocement Learning 1.1.3
 
 ## Latest Update
 1. move some API to training_node, samplify training process.
@@ -9,6 +9,7 @@
 
 6. fix world train_env_3m_light's bug
 7. fix bug of training_node.py
+8. add cur_trap_num in testing_node
 ...
 
 

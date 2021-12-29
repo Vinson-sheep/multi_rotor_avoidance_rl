@@ -12,7 +12,7 @@ import pickle
 # hyper parameter
 max_testing_num = 100
 
-restore_able = False
+restore_able = True
 
 policy = "TD3" # DDPG or TD3
 game_name = "corridor" # corridor / cluster
@@ -27,6 +27,8 @@ hidden_dim = 300
 testing_num_begin = 0
 cur_testing_num = 0
 cur_success_num = 0
+cur_crash_num = 0
+cur_trap_num = 0
 
 # file url
 data_url = os.path.dirname(os.path.realpath(__file__)) + '/data/' + policy + '/'
@@ -36,10 +38,11 @@ def save():
     save_file = open(data_url + 'temp_test.bin',"wb")
     pickle.dump(cur_testing_num,save_file)
     pickle.dump(cur_success_num,save_file)
-    pickle.dump(max_testing_num,save_file)
+    pickle.dump(cur_crash_num, save_file)
+    pickle.dump(cur_trap_num, save_file)
 
     print("store cur_testing_num: ", cur_testing_num, "cur_success_num: ", cur_success_num, 
-        "max_testing_num: ", max_testing_num)
+        "cur_crash_num: ", cur_crash_num, "cur_trap_num", cur_trap_num)
 
     save_file.close()
     
@@ -49,12 +52,13 @@ def load():
     load_file = open(data_url + 'temp_test.bin',"rb")
     cur_testing_num=pickle.load(load_file)
     cur_success_num=pickle.load(load_file)
-    max_testing_num=pickle.load(load_file)
+    cur_crash_num = pickle.load(load_file)
+    cur_trap_num = pickle.load(load_file)
 
     print("restore cur_testing_num: ", cur_testing_num, "cur_success_num: ", cur_success_num, 
-            "max_testing_num: ", max_testing_num)
+        "cur_crash_num: ", cur_crash_num, "cur_trap_num", cur_trap_num)
 
-    return cur_testing_num, cur_success_num, max_testing_num
+    return cur_testing_num, cur_success_num, cur_crash_num, cur_trap_num
 
 if __name__ == '__main__':
 
@@ -98,7 +102,7 @@ if __name__ == '__main__':
 
     # load data if true
     if restore_able == True:
-        cur_testing_num, cur_success_num, max_testing_num = load()
+        cur_testing_num, cur_success_num, cur_crash_num, cur_trap_num = load()
 
     cur_testing_num += 1
     testing_num_begin = cur_testing_num
@@ -136,17 +140,20 @@ if __name__ == '__main__':
             
             s0 = s1
             crash_indicator, _, _ = env.is_crashed()
-                
+            arrive_indicator = env.is_arrived()
 
             if done == True:
                 if crash_indicator == True:
+                    cur_crash_num += 1
                     print("crashed!")
-                else:
+                elif arrive_indicator == True:
                     cur_success_num += 1
                     print("arrived")
+                else:
+                    cur_trap_num += 1
                 break
 
-        print('[' + str(episode) + ']', ' success_rate:', float(cur_success_num)/float(max_testing_num) * 100, "%")
+        print('[' + str(episode) + ']', ' success_num', cur_success_num, ' crash_num', cur_crash_num, ' trap_num', cur_trap_num)
 
         save()
 
