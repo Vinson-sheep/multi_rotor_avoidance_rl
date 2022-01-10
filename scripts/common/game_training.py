@@ -5,7 +5,6 @@ import rospy
 from rospy.rostime import Duration
 
 # ros include
-from std_msgs.msg import String
 from std_srvs.srv import Empty, EmptyRequest, EmptyResponse
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Twist, Pose, PoseStamped, TwistStamped, TwistWithCovarianceStamped
@@ -47,6 +46,8 @@ class Game:
         self.state_num = 35+4
         self.action_num = 2
 
+        self.momentum_discount = 0.4
+
         self.height = 2.0 # height of taking off
 
         self.step_count = 0
@@ -57,6 +58,7 @@ class Game:
         self.hold_able = False
         self.hold_pose = Pose()
         self.last_cmd_time = rospy.Time.now()
+
 
         # initialize grid
         if (game_name == "empty_3m"):
@@ -115,10 +117,10 @@ class Game:
         # stop in place
         print("stoping.")
         # while not self._is_hold():
-        for i in range(20):
-            self._send_velocity_cmd(0, 0, 0)
-            self.hold_flag = False
-            self.rate.sleep()
+        # for i in range(20):
+        #     self._send_velocity_cmd(0, 0, 0)
+        #     self.hold_flag = False
+        #     self.rate.sleep()
 
         # go backward with low velocty
         print("go backward.")
@@ -127,8 +129,8 @@ class Game:
             # calculate the vx and vy
             alpha = self.scan.angle_min + self.scan.angle_increment * self.crash_index
 
-            vx = -math.cos(alpha) * 0.3
-            vy = -math.sin(alpha) * 0.3 
+            vx = -math.cos(alpha) * 0.1
+            vy = -math.sin(alpha) * 0.1 
             self._send_velocity_cmd(vx, vy, 0)
             self.hold_flag = False
             self.rate.sleep()
@@ -202,12 +204,18 @@ class Game:
         rospy.loginfo("initialize uav position.")
 
         # randomize target point
-        self.target_x = random.choice([self.target_distance, -self.target_distance]) + home_x
-        self.target_y = random.choice([self.target_distance, -self.target_distance]) + home_y
-        while (not self.target_x in self.target_list):
-            self.target_x = random.choice([self.target_distance, -self.target_distance]) + home_x
-        while (not self.target_y in self.target_list):
-            self.target_y = random.choice([self.target_distance, -self.target_distance]) + home_y
+        self.target_x = 100
+        self.target_y = 100
+        while (not self.target_x in self.target_list or not self.target_y in self.target_list):
+            self.target_x = random.choice([self.target_distance, 0, -self.target_distance])
+            if (int(self.target_x) == 0):
+                self.target_y = random.choice([self.target_distance, -self.target_distance]) + home_y
+            else:
+                self.target_y = random.choice([self.target_distance, 0, -self.target_distance]) + home_y
+                
+            self.target_x += home_x
+        # self.target_x = random.choice([self.target_distance, -self.target_distance]) + home_x
+        # self.target_y = random.choice([self.target_distance, -self.target_distance]) + home_y
 
         target_msg = ModelState()
         target_msg.model_name = 'unit_sphere'
@@ -288,7 +296,6 @@ class Game:
         self.armingClient.wait_for_service()
 
         count = 0
-        begin_time = rospy.Time.now()
         while self.armingClient.call(arm_cmd).success == False and count < 10:
             rospy.sleep(rospy.Duration(1))
             count += 1
@@ -363,6 +370,8 @@ class Game:
         # record last x and y
         last_pos_x_uav = self.pose.position.x
         last_pos_y_uav = self.pose.position.y
+        last_velocity_x = self.body_v.twist.linear.x
+        last_yaw_rate = self.body_v.twist.angular.z
         last_distance = math.sqrt((self.target_x - last_pos_x_uav)**2 + (self.target_y - last_pos_y_uav)**2)
 
         # send control command for time_step period
@@ -381,7 +390,7 @@ class Game:
         cur_distance = math.sqrt((self.target_x - cur_pos_x_uav)**2 + (self.target_y - cur_pos_y_uav)**2)
         
         # distance reward
-        distance_reward = last_distance - cur_distance
+        distance_reward = (last_distance - cur_distance)*(5/time_step)*1.7*7
 
         self.done = False
 
@@ -403,14 +412,11 @@ class Game:
 
         # linear punish reward
         self.linear_punish_reward_x = 0
-        self.linear_punish_reward_y = 0
-
         if self.body_v.twist.linear.x < 0.1:
             self.linear_punish_reward_x = -1
 
         # angular punish reward
         self.angular_punish_reward = 0
-
         if abs(self.body_v.twist.angular.z) > 0.5:
             self.angular_punish_reward = -1
         elif abs(self.body_v.twist.angular.z) > 0.8:
@@ -419,18 +425,31 @@ class Game:
         # step punish reward
         self.step_punish_reward = -self.step_count * 0.04
 
-        print("distance_reward: ", distance_reward*(5/time_step)*1.2*7, " arrive_reward: ", self.arrive_reward,
-                " crash reward: ", crash_reward, " laser reward: ", laser_reward, " linear punish reward x:", 
-                self.linear_punish_reward_x, " angular punish reward:", self.angular_punish_reward,
-                "step_punish_reward", self.step_punish_reward)
+        # acc punish
+        self.velocity_x_punish_reward = -2.0*abs(last_velocity_x - self.body_v.twist.linear.x)*(1/time_step)
+        self.yaw_rate_punish_reward = -1.0*abs(last_yaw_rate - self.body_v.twist.angular.z)*(1/time_step)
 
-        total_reward = distance_reward*(5/time_step)*1.2*7 \
+        total_reward = distance_reward \
                         + self.arrive_reward \
                         + crash_reward \
                         + laser_reward \
                         + self.linear_punish_reward_x \
                         + self.angular_punish_reward \
-                        + self.step_punish_reward
+                        + self.step_punish_reward \
+                        + self.velocity_x_punish_reward \
+                        + self.yaw_rate_punish_reward \
+
+        print(  
+            "distance_reward: ", distance_reward, 
+            " arrive_reward: ", self.arrive_reward,
+            " crash reward: ", crash_reward, 
+            " laser reward: ", laser_reward, 
+            " linear punish reward", self.linear_punish_reward_x,
+            " angular punish reward", self.angular_punish_reward,
+            " step_punish_reward: ", self.step_punish_reward,
+            " velocity_x_punish_reward: ", self.velocity_x_punish_reward,
+            " yaw_rate_punish_reward", self.yaw_rate_punish_reward
+            )
 
         self.hold_able = True
 
@@ -456,7 +475,7 @@ class Game:
         if self.hold_able == False:
             return
 
-        if (self.hold_flag == False) and ((rospy.Time.now() - self.last_cmd_time) > rospy.Duration(0.1)):
+        if (self.hold_flag == False) and ((rospy.Time.now() - self.last_cmd_time) > rospy.Duration(0.2)):
             self.hold_pose = self.pose
             self.hold_flag = True
             print("reset hold pose.")
@@ -573,17 +592,19 @@ class Game:
 
     def _cur_state(self):
         """
-            get current state
+            35 laser
+            1  vx
+            1  yaw_rate
+            1  distance
+            1  angle_diff
         """
         # ranges msg
-        state = np.ones(self.state_num)
-        cur_ranges = [ (i - self.scan.range_max/2)/(self.scan.range_max/2) for i in self.scan.ranges]
-        for i in range(len(cur_ranges)):
-            state[i] = cur_ranges[i]
+        state = [ (i - self.scan.range_max/2)/(self.scan.range_max/2) for i in self.scan.ranges]
+
         # pose msg
-        state[-5] = self.body_v.twist.linear.x
-        state[-4] = self.body_v.twist.linear.y
-        state[-3] = self.body_v.twist.angular.z/math.pi
+        state.append(self.body_v.twist.linear.x/0.5)
+        state.append(self.body_v.twist.angular.z)
+        
         # relative distance and normalize
         distance_uav_target =  math.sqrt((self.target_x - self.pose.position.x)**2 + (self.target_y - self.pose.position.y)**2)/10
         angle_uav_targer = atan2(self.target_y - self.pose.position.y, self.target_x - self.pose.position.x)
@@ -594,8 +615,8 @@ class Game:
                                                 self.pose.orientation.w
                                                 ])
         angle_diff = angles.shortest_angular_distance(angle_uav, angle_uav_targer)/math.pi
-        state[-2] = distance_uav_target
-        state[-1] = angle_diff
+        state.append(distance_uav_target)
+        state.append(angle_diff)
 
         return state
 

@@ -156,7 +156,10 @@ include_directories(
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS
-  scripts/test.py
+  test/test.py
+  test/plot.py
+  test/var_calculate.py
+  test/var_collect.py
   scripts/testing_node.py
   scripts/training_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

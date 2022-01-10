@@ -17,7 +17,6 @@ from nav_msgs.msg import Odometry
 from gazebo_msgs.srv import SetModelState, GetModelState, GetModelStateRequest, GetModelStateResponse
 from gazebo_msgs.msg import ModelState 
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
-
 import random
 import numpy as np
 import math
@@ -57,10 +56,24 @@ class Game:
         self.hold_pose = Pose()
         self.last_cmd_time = rospy.Time.now()
 
+        self.game_name = game_name
+
         # initialize grid
-        if (game_name == "corridor" or game_name == "cluster"):
+        if (game_name == "test_env_corridor" or game_name == "test_env_cluster"):
             self.home_list = [[0, 0]]
             self.target_list = [[-7, 0], [7, 0], [0, -7], [0, 7]]
+        if (game_name == "train_env_3m"):
+            self.home_list = [-9, -6, -3, 0, 3, 6, 9]
+            self.target_list = self.home_list
+            self.target_distance = 3
+        if (game_name == "train_env_7m"):
+            self.home_list = [-7, 0, 7]
+            self.target_list = self.home_list
+            self.target_distance = 7
+        if (game_name == "train_env_10m"):
+            self.home_list = [-10, 0, 10]
+            self.target_list = self.home_list
+            self.target_distance = 10
 
         # subscriber
         self.mavrosStateSub = rospy.Subscriber(self.model_name + "/mavros/state", State, self._mavrosStateCB)
@@ -92,10 +105,10 @@ class Game:
         # stop in place
         print("stoping.")
         # while not self._is_hold():
-        for i in range(20):
-            self._send_velocity_cmd(0, 0, 0)
-            self.hold_flag = False
-            self.rate.sleep()
+        # for i in range(20):
+        #     self._send_velocity_cmd(0, 0, 0)
+        #     self.hold_flag = False
+        #     self.rate.sleep()
 
         # go backward with low velocty
         print("go backward.")
@@ -104,8 +117,8 @@ class Game:
             # calculate the vx and vy
             alpha = self.scan.angle_min + self.scan.angle_increment * self.crash_index
 
-            vx = -math.cos(alpha) * 0.3
-            vy = -math.sin(alpha) * 0.3 
+            vx = -math.cos(alpha) * 0.1
+            vy = -math.sin(alpha) * 0.1 
             self._send_velocity_cmd(vx, vy, 0)
             self.hold_flag = False
             self.rate.sleep()
@@ -143,7 +156,12 @@ class Game:
         rospy.sleep(rospy.Duration(1))
         
         # fly home
-        home_x, home_y = random.choice(self.home_list)
+        if (self.game_name == "test_env_corridor" or self.game_name == "test_env_cluster"):
+            home_x, home_y = random.choice(self.home_list)
+        else:
+            home_x = random.choice(self.home_list)
+            home_y = random.choice(self.home_list)
+
         home_yaw = 3.1415926*random.choice([-1, 1])* np.random.random()
 
         while self._is_arrived(home_x, home_y, 6) == False or self._is_hold() == False:
@@ -177,8 +195,20 @@ class Game:
         rospy.loginfo("initialize uav position.")
 
         # randomize target point
-        self.target_x, self.target_y = random.choice(self.target_list)
-
+        if (self.game_name == "test_env_corridor" or self.game_name == "test_env_cluster"):
+            self.target_x, self.target_y = random.choice(self.target_list)
+        else:
+            self.target_x = 100
+            self.target_y = 100
+            while (not self.target_x in self.target_list or not self.target_y in self.target_list):
+                self.target_x = random.choice([self.target_distance, 0, -self.target_distance])
+                if (int(self.target_x) == 0):
+                    self.target_y = random.choice([self.target_distance, -self.target_distance]) + home_y
+                else:
+                    self.target_y = random.choice([self.target_distance, 0, -self.target_distance]) + home_y
+                    
+                self.target_x += home_x
+                
         target_msg = ModelState()
         target_msg.model_name = 'unit_sphere'
         target_msg.pose.position.x = self.target_x
@@ -201,9 +231,19 @@ class Game:
         """
             send take-off command
         """
-        self.target_x, self.target_y = random.choice(self.target_list)    
+
 
         # randomize target point
+        if (self.game_name == "test_env_corridor" or self.game_name == "test_env_cluster"):
+            self.target_x, self.target_y = random.choice(self.target_list)    
+        else:
+            self.target_x = random.choice([self.target_distance, -self.target_distance])
+            self.target_y = random.choice([self.target_distance, -self.target_distance])
+            while (not self.target_x in self.target_list):
+                self.target_x = random.choice([self.target_distance, -self.target_distance])
+            while (not self.target_y in self.target_list):
+                self.target_y = random.choice([self.target_distance, -self.target_distance])
+
 
         target_msg = ModelState()
         target_msg.model_name = 'unit_sphere'
@@ -314,22 +354,10 @@ class Game:
         """
             game step
         """
-        self.hold_able = False
-        # record last x and y
-        last_pos_x_uav = self.pose.position.x
-        last_pos_y_uav = self.pose.position.y
-        last_distance = math.sqrt((self.target_x - last_pos_x_uav)**2 + (self.target_y - last_pos_y_uav)**2)
 
-        # send control command for time_step period
-        time = rospy.Time.now()
-        while (rospy.Time.now() - time) < Duration(time_step):
-
-            self._send_velocity_cmd(vx, vy, yaw_rate)
-            self.hold_flag = False
-
-            crash_indicator, _, _ = self.is_crashed()
-            if crash_indicator == True:
-                break
+        # send control command
+        self._send_velocity_cmd(vx, vy, yaw_rate)
+        self.hold_flag = False
 
         cur_pos_x_uav = self.pose.position.x
         cur_pos_y_uav = self.pose.position.y
@@ -338,9 +366,7 @@ class Game:
         self.done = False
 
         # arrive reward
-        self.arrive_reward = 0
-        if cur_distance < 0.8:
-            self.arrive_reward = 100
+        if cur_distance < 0.5:
             self.done = True
 
         # crash reward
@@ -349,7 +375,6 @@ class Game:
             self.done = True
 
         self.hold_able = True
-
 
         return self._cur_state(), 0, self.done
 
@@ -497,22 +522,21 @@ class Game:
 
     def _cur_state(self):
         """
-            get current state
+            35 laser
+            1  vx
+            1  yaw_rate
+            1  distance
+            1  angle_diff
         """
         # ranges msg
-        state = np.ones(self.state_num)
-        cur_ranges = [ (i - self.scan.range_max/2)/(self.scan.range_max/2) for i in self.scan.ranges]
-        for i in range(len(cur_ranges)):
-            state[i] = cur_ranges[i]
+        state = [ (i - self.scan.range_max/2)/(self.scan.range_max/2) for i in self.scan.ranges]
 
         # pose msg
-        state[-5] = self.body_v.twist.linear.x
-        state[-4] = self.body_v.twist.linear.y
-        state[-3] = self.body_v.twist.angular.z/math.pi
+        state.append(self.body_v.twist.linear.x/0.5)
+        state.append(self.body_v.twist.angular.z)
+        
         # relative distance and normalize
-        # /10 here is to cut down magnitude of distance
         distance_uav_target =  math.sqrt((self.target_x - self.pose.position.x)**2 + (self.target_y - self.pose.position.y)**2)/10
-        # relative angular difference and normalize
         angle_uav_targer = atan2(self.target_y - self.pose.position.y, self.target_x - self.pose.position.x)
         (_, _, angle_uav) = euler_from_quaternion([
                                                 self.pose.orientation.x,
@@ -521,8 +545,8 @@ class Game:
                                                 self.pose.orientation.w
                                                 ])
         angle_diff = angles.shortest_angular_distance(angle_uav, angle_uav_targer)/math.pi
-        state[-2] = distance_uav_target
-        state[-1] = angle_diff
+        state.append(distance_uav_target)
+        state.append(angle_diff)
 
         return state
 

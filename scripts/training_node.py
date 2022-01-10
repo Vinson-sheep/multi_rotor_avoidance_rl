@@ -1,8 +1,8 @@
 #! /usr/bin/env python
 #-*- coding: UTF-8 -*- 
 
-from pickle import TRUE
 from common.game_training import Game
+from mavros_msgs.msg import PositionTarget
 import rospy
 import DDPG
 import TD3
@@ -14,13 +14,15 @@ import os
 import threading
 
 # hyper parameter
-epsilon = 0.9
-epsilon_decay = 0.99995
+epsilon = 0.8
+epsilon_decay = 0.9999
 
 load_able = True # True if you want to load previous data
 
 policy = "TD3" # DDPG or TD3
-game_name = "train_env_10m" # empty_?m / train_env_?m
+game_name = "train_env_7m" # empty_?m / train_env_?m
+
+action_discount = 1.0   # set 1.0 to forbidden momentum
 
 # DDPG and TD3 params
 state_dim = 39
@@ -31,13 +33,13 @@ hidden_dim = 300
 discount = 0.99
 # actor_lr = 1e-4
 # critic_lr = 1e-2
-actor_lr = 3e-4
+actor_lr = 3e-5
 critic_lr = 3e-4
 tau = 0.01
 buffer_size = 20000
 batch_size = 512
 alpha = 0.3
-hyper_parameters_eps = 1.0
+hyper_parameters_eps = 0.2
 
 # td3 excluded
 policy_noise = 0.2
@@ -51,7 +53,8 @@ load_critic_flag = True
 load_optim_flag = True
 fix_actor_flag = False
 
-max_episode = 150
+max_episode = 300
+max_step_size = 300
 
 # variable
 e = []
@@ -116,6 +119,9 @@ if __name__ == '__main__':
     # initialize ros
     rospy.init_node("training_node")
 
+    # raw data
+    rawCmdPub = rospy.Publisher("raw_cmd", PositionTarget, queue_size=1)
+
     # wait for world building
     rospy.sleep(rospy.Duration(3))
 
@@ -123,8 +129,8 @@ if __name__ == '__main__':
     env = Game("iris_0", game_name)
 
     # initialize agent
-
     kwargs = {
+        'policy': policy,
         'state_dim': state_dim,
         'action_dim': action_dim,
         'hidden_dim': hidden_dim,
@@ -187,6 +193,13 @@ if __name__ == '__main__':
     # start to train
     for episode in range(episode_begin, max_episode):
 
+        # DEBUG
+        pt = PositionTarget()
+        pt.type_mask = 2
+        pt.velocity.x = 0
+        pt.yaw_rate = 0
+        rawCmdPub.publish(pt)
+
         if episode == episode_begin:
             s0 = env.start()
             print("start!")
@@ -196,27 +209,37 @@ if __name__ == '__main__':
 
         episode_reward = 0
 
-        for step in range(500):
+        momentum = [0.0]*action_dim
+
+        for step in range(max_step_size):
 
             step_count_begin += 1
             s.append(step_count_begin)
-
             a0 = agent.act(s0)
+
+            # DEBUG
+            pt = PositionTarget()
+            pt.type_mask = 1
+            pt.velocity.x = (a0[0]+1)/4.0
+            pt.yaw_rate = a0[1]
+            rawCmdPub.publish(pt)
 
             # E-greedy
             if epsilon > np.random.random():
                 a0[0] = np.clip(a0[0] + np.random.choice([-1, 1])* np.random.random()*0.5, -1.0, 1.0)
                 a0[1] = np.clip(a0[1] + np.random.choice([-1, 1])* np.random.random()*0.5, -1.0, 1.0)
 
+            # monmentum
+            momentum[0] = (1-action_discount)*momentum[0] + action_discount*a0[0]
+            momentum[1] = (1-action_discount)*momentum[1] + action_discount*a0[1]
+
+            s1, r1, done = env.step(0.1, (momentum[0]+1)/4.0, 0, momentum[1])
+             
+            q_value = agent.put(s0, a0, r1, s1, done)
+
             epsilon = max(epsilon_decay*epsilon, 0.10)
-            
             print("eps = ", epsilon)
 
-            begin_time = rospy.Time.now()
-
-            s1, r1, done = env.step(0.1, (a0[0]+1)/4.0, 0, a0[1])
-            q_value = agent.put(s0, a0, r1, s1, done)
-            
             r.append(r1)
             q.append(q_value)
 

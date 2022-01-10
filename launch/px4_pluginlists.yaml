@@ -24,7 +24,7 @@ plugin_blacklist:
 - debug_value
 - wheel_odometry
 - vibration
-- odom
+# - odom
 - setpoint_attitude
 - setpoint_position
 - setpoint_accel

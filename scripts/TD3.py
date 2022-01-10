@@ -96,13 +96,13 @@ class Agent(object):
 
         self.buffer = PrioritizedReplayBuffer(self.buffer_size, self.batch_size)
 
-        self.load(os.path.dirname(os.path.realpath(__file__)) + '/data/TD3/TD3')
+        self.load(os.path.dirname(os.path.realpath(__file__)) + '/data/' + self.policy + '/' + self.policy)
 
         self.total_it = 0
 
         
     def act(self, state):
-        state = torch.FloatTensor(state.reshape(1, -1)).to(device)
+        state = torch.FloatTensor(np.array(state).reshape(1, -1)).to(device)
         return self.actor(state).cpu().data.numpy().flatten()
     
 
@@ -214,18 +214,18 @@ class Agent(object):
     def load(self, filename):
 
         if self.load_critic_flag == True:
-            self.critic.load_state_dict(torch.load(filename + "_critic.pkl"))
+            self.critic.load_state_dict(torch.load(filename + "_critic.pkl", map_location=device))
             self.critic_target = copy.deepcopy(self.critic)
             print("load critic model.")
 
         if self.load_actor_flag == True:
-            self.actor.load_state_dict(torch.load(filename + "_actor.pkl"))
+            self.actor.load_state_dict(torch.load(filename + "_actor.pkl", map_location=device))
             self.actor_target = copy.deepcopy(self.actor)
             print("load actor model.")
 
         if self.load_optim_flag == True:
-            self.critic_optimizer.load_state_dict(torch.load(filename + "_critic_optimizer.pth"))
-            self.actor_optimizer.load_state_dict(torch.load(filename + "_actor_optimizer.pth"))
+            self.critic_optimizer.load_state_dict(torch.load(filename + "_critic_optimizer.pth", map_location=device))
+            self.actor_optimizer.load_state_dict(torch.load(filename + "_actor_optimizer.pth", map_location=device))
             print("load optimizer.")
 
         if self.load_buffer_flag == True:
