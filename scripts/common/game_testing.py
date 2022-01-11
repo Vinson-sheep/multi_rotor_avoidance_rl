@@ -102,15 +102,6 @@ class Game:
             reset uav and target
         """
 
-        # stop in place
-        print("stoping.")
-        # while not self._is_hold():
-        # for i in range(20):
-        #     self._send_velocity_cmd(0, 0, 0)
-        #     self.hold_flag = False
-        #     self.rate.sleep()
-
-        # go backward with low velocty
         print("go backward.")
         self.flag, _, self.crash_index = self.is_crashed()
         while self.flag == True:

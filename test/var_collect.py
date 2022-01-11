@@ -12,7 +12,7 @@ import pickle
 from mavros_msgs.msg import PositionTarget
 from geometry_msgs.msg import TwistStamped
 
-load_data = False
+load_data = True
 
 count = 0
 
@@ -40,6 +40,9 @@ def cmdCB(msg):
 
     global begin_time
     begin_time = rospy.Time.now()
+
+    global has_reset
+    has_reset = False
 
     global last_yaw_rate_cmd
     global last_velocity_x_cmd
@@ -69,6 +72,7 @@ def cmdCB(msg):
     last_yaw_rate_real = twist.twist.angular.z
     last_velocity_x_real = twist.twist.linear.x
 
+
 def realCB(msg):
     global twist
     twist = msg
@@ -89,7 +93,7 @@ def resetCB(event):
         last_velocity_x_real = 0
 
         
-        has_reset = False
+        has_reset = True
 
         print("reset.")
 
@@ -105,6 +109,7 @@ if __name__ == "__main__":
         velocity_x_cmd = pickle.load(load_file)
         yaw_rate_real = pickle.load(load_file)
         velocity_x_real = pickle.load(load_file)
+        print("load data.")
 
     cmdSub = rospy.Subscriber("/mod_cmd", PositionTarget, cmdCB, queue_size=10)
     realSub = rospy.Subscriber("/iris_0/mavros/local_position/velocity_body", TwistStamped, realCB, queue_size=10)

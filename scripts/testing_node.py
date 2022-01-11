@@ -13,10 +13,10 @@ import pickle
 # hyper parameter
 max_testing_num = 100
 
-restore_able = False
+restore_able = True
 
 policy = "TD3" # DDPG or TD3
-filter = "MAF" # NONE / FIR / MAF / FOLF
+filter = "FOLF" # NONE / FIR / MAF / FOLF
 game_name = "train_env_7m" # test_env_corridor / test_env_cluster / train_env_??
 
 # FIR filter

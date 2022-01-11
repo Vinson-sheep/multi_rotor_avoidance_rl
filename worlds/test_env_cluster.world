@@ -82,10 +82,10 @@
       <heading_deg>0</heading_deg>
     </spherical_coordinates>
     <state world_name='default'>
-      <sim_time>248 608000000</sim_time>
-      <real_time>61 625524585</real_time>
-      <wall_time>1641562858 426428219</wall_time>
-      <iterations>61201</iterations>
+      <sim_time>285 226000000</sim_time>
+      <real_time>36 831458911</real_time>
+      <wall_time>1641871188 515353857</wall_time>
+      <iterations>36618</iterations>
       <model name='ground_plane'>
         <pose frame=''>0 0 0 0 -0 0</pose>
         <scale>1 1 1</scale>
@@ -97,580 +97,580 @@
         </link>
       </model>
       <model name='unit_cylinder'>
-        <pose frame=''>-2.17173 -0.620733 1.99999 0 0 -0.001957</pose>
+        <pose frame=''>-2.1717 -0.620709 2 0 0 -0.002853</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>-2.17173 -0.620733 1.99999 0 0 -0.001957</pose>
+          <pose frame=''>-2.1717 -0.620709 2 0 0 -0.002853</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone'>
-        <pose frame=''>2.79106 0.434866 2 0 0 -0.001909</pose>
+        <pose frame=''>2.79109 0.434889 1.99999 0 0 -0.002779</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>2.79106 0.434866 2 0 0 -0.001909</pose>
+          <pose frame=''>2.79109 0.434889 1.99999 0 0 -0.002779</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_0'>
-        <pose frame=''>-0.125953 2.52892 1.99999 0 0 -0.001966</pose>
+        <pose frame=''>-0.125925 2.52894 2 0 0 -0.002862</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>-0.125953 2.52892 1.99999 0 0 -0.001966</pose>
+          <pose frame=''>-0.125925 2.52894 2 0 0 -0.002862</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_0_clone'>
-        <pose frame=''>6.50523 -3.75952 1.99999 0 0 -0.001861</pose>
+        <pose frame=''>6.50526 -3.7595 2 0 0 -0.002757</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>6.50523 -3.75952 1.99999 0 0 -0.001861</pose>
+          <pose frame=''>6.50526 -3.7595 2 0 0 -0.002757</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_1'>
-        <pose frame=''>1.48884 2.81385 1.99999 0 0 -0.003634</pose>
+        <pose frame=''>1.48887 2.81387 2 0 0 -0.00453</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>1.48884 2.81385 1.99999 0 0 -0.003634</pose>
+          <pose frame=''>1.48887 2.81387 2 0 0 -0.00453</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_10'>
-        <pose frame=''>-6.4236 -2.50127 1.99999 0 0 -0.00186</pose>
+        <pose frame=''>-6.42357 -2.50125 2 0 0 -0.002756</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>-6.4236 -2.50127 1.99999 0 0 -0.00186</pose>
+          <pose frame=''>-6.42357 -2.50125 2 0 0 -0.002756</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_11'>
-        <pose frame=''>-4.89756 -2.73771 1.99999 0 0 -0.00186</pose>
+        <pose frame=''>-4.89753 -2.73769 2 0 0 -0.002756</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>-4.89756 -2.73771 1.99999 0 0 -0.00186</pose>
+          <pose frame=''>-4.89753 -2.73769 2 0 0 -0.002756</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_13'>
-        <pose frame=''>-5.21824 -1.3298 2 0 0 -0.001848</pose>
+        <pose frame=''>-5.21821 -1.32978 1.99999 0 0 -0.002718</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>-5.21824 -1.3298 2 0 0 -0.001848</pose>
+          <pose frame=''>-5.21821 -1.32978 1.99999 0 0 -0.002718</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_14'>
-        <pose frame=''>-6.57286 -0.768241 1.99999 0 0 -0.002155</pose>
+        <pose frame=''>-6.57283 -0.768217 2 0 0 -0.003051</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>-6.57286 -0.768241 1.99999 0 0 -0.002155</pose>
+          <pose frame=''>-6.57283 -0.768217 2 0 0 -0.003051</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_15'>
-        <pose frame=''>-8.32869 -2.56414 2 0 0 -0.001964</pose>
+        <pose frame=''>-8.32866 -2.56412 1.99999 0 0 -0.002834</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>-8.32869 -2.56414 2 0 0 -0.001964</pose>
+          <pose frame=''>-8.32866 -2.56412 1.99999 0 0 -0.002834</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_16'>
-        <pose frame=''>-9.06627 -1.36023 2 0 0 -0.001916</pose>
+        <pose frame=''>-9.06624 -1.36021 1.99999 0 0 -0.002786</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>-9.06627 -1.36023 2 0 0 -0.001916</pose>
+          <pose frame=''>-9.06624 -1.36021 1.99999 0 0 -0.002786</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_17'>
-        <pose frame=''>-8.26974 0.79166 1.99999 0 0 -0.001968</pose>
+        <pose frame=''>-8.26971 0.791684 2 0 0 -0.002864</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>-8.26974 0.79166 1.99999 0 0 -0.001968</pose>
+          <pose frame=''>-8.26971 0.791684 2 0 0 -0.002864</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_18'>
-        <pose frame=''>1.18453 9.01143 2 0 0 -0.001912</pose>
+        <pose frame=''>1.18456 9.01145 1.99999 0 0 -0.002782</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>1.18453 9.01143 2 0 0 -0.001912</pose>
+          <pose frame=''>1.18456 9.01145 1.99999 0 0 -0.002782</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_19'>
-        <pose frame=''>-3.20759 7.43042 1.99999 0 0 -0.0024</pose>
+        <pose frame=''>-3.20756 7.43044 2 0 0 -0.003296</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>-3.20759 7.43042 1.99999 0 0 -0.0024</pose>
+          <pose frame=''>-3.20756 7.43044 2 0 0 -0.003296</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_2'>
-        <pose frame=''>-1.07329 4.59012 1.99999 0 0 -0.002045</pose>
+        <pose frame=''>-1.07326 4.59014 2 0 0 -0.002941</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>-1.07329 4.59012 1.99999 0 0 -0.002045</pose>
+          <pose frame=''>-1.07326 4.59014 2 0 0 -0.002941</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_20'>
-        <pose frame=''>3.9804 7.32328 1.99999 0 0 -0.001907</pose>
+        <pose frame=''>3.98043 7.3233 2 0 0 -0.002803</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>3.9804 7.32328 1.99999 0 0 -0.001907</pose>
+          <pose frame=''>3.98043 7.3233 2 0 0 -0.002803</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_21'>
-        <pose frame=''>-1.30182 7.90807 1.99999 0 0 -0.00415</pose>
+        <pose frame=''>-1.30179 7.90809 2 0 0 -0.005046</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>-1.30182 7.90807 1.99999 0 0 -0.00415</pose>
+          <pose frame=''>-1.30179 7.90809 2 0 0 -0.005046</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_21_clone'>
-        <pose frame=''>-0.341961 6.54816 1.99999 0 0 -0.001883</pose>
+        <pose frame=''>2.96549 7.57198 1.99999 0 0 -0.002708</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>-0.341961 6.54816 1.99999 0 0 -0.001883</pose>
+          <pose frame=''>2.96549 7.57198 1.99999 0 0 -0.002708</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_22'>
-        <pose frame=''>0.989269 7.51336 2 0 0 -0.002087</pose>
+        <pose frame=''>0.989296 7.51338 1.99999 0 0 -0.002957</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>0.989269 7.51336 2 0 0 -0.002087</pose>
+          <pose frame=''>0.989296 7.51338 1.99999 0 0 -0.002957</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_23'>
-        <pose frame=''>0.229096 4.44926 1.99999 0 0 -0.002323</pose>
+        <pose frame=''>0.229124 4.44928 2 0 0 -0.003219</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>0.229096 4.44926 1.99999 0 0 -0.002323</pose>
+          <pose frame=''>0.229124 4.44928 2 0 0 -0.003219</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_24'>
-        <pose frame=''>3.1594 4.96135 2 0 0 -0.002314</pose>
+        <pose frame=''>3.15943 4.96137 1.99999 0 0 -0.003184</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>3.1594 4.96135 2 0 0 -0.002314</pose>
+          <pose frame=''>3.15943 4.96137 1.99999 0 0 -0.003184</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_25'>
-        <pose frame=''>-1.48638 5.46294 2 0 0 -0.001899</pose>
+        <pose frame=''>-1.48635 5.46296 1.99999 0 0 -0.002769</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>-1.48638 5.46294 2 0 0 -0.001899</pose>
+          <pose frame=''>-1.48635 5.46296 1.99999 0 0 -0.002769</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_26'>
-        <pose frame=''>2.93404 -0.57389 1.99999 0 0 -0.002029</pose>
+        <pose frame=''>2.93407 -0.573866 2 0 0 -0.002925</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>2.93404 -0.57389 1.99999 0 0 -0.002029</pose>
+          <pose frame=''>2.93407 -0.573866 2 0 0 -0.002925</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_27'>
-        <pose frame=''>1.88874 -1.95943 1.99999 0 0 -0.002028</pose>
+        <pose frame=''>1.88877 -1.95941 2 0 0 -0.002924</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>1.88874 -1.95943 1.99999 0 0 -0.002028</pose>
+          <pose frame=''>1.88877 -1.95941 2 0 0 -0.002924</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_28'>
-        <pose frame=''>2.00011 1.00015 1.99999 0 0 -0.001897</pose>
+        <pose frame=''>2.00014 1.00017 2 0 0 -0.002793</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>2.00011 1.00015 1.99999 0 0 -0.001897</pose>
+          <pose frame=''>2.00014 1.00017 2 0 0 -0.002793</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_29'>
-        <pose frame=''>6.0001 2.00015 1.99999 0 0 -0.00185</pose>
+        <pose frame=''>6.00013 2.00017 2 0 0 -0.002746</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>6.0001 2.00015 1.99999 0 0 -0.00185</pose>
+          <pose frame=''>6.00013 2.00017 2 0 0 -0.002746</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_3'>
-        <pose frame=''>1.00011 6.00015 1.99999 0 0 -0.002036</pose>
+        <pose frame=''>1.00014 6.00017 2 0 0 -0.002932</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>1.00011 6.00015 1.99999 0 0 -0.002036</pose>
+          <pose frame=''>1.00014 6.00017 2 0 0 -0.002932</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_30'>
-        <pose frame=''>5.22451 0.959627 1.99999 0 0 -0.001886</pose>
+        <pose frame=''>5.22454 0.959651 2 0 0 -0.002782</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>5.22451 0.959627 1.99999 0 0 -0.001886</pose>
+          <pose frame=''>5.22454 0.959651 2 0 0 -0.002782</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_31'>
-        <pose frame=''>5.18006 -1.11594 1.99999 0 0 -0.00195</pose>
+        <pose frame=''>5.18009 -1.11592 2 0 0 -0.002846</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>5.18006 -1.11594 1.99999 0 0 -0.00195</pose>
+          <pose frame=''>5.18009 -1.11592 2 0 0 -0.002846</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_32'>
-        <pose frame=''>7.61988 -2.35223 2 0 0 -0.001915</pose>
+        <pose frame=''>7.61991 -2.35221 1.99999 0 0 -0.002785</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>7.61988 -2.35223 2 0 0 -0.001915</pose>
+          <pose frame=''>7.61991 -2.35221 1.99999 0 0 -0.002785</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_33'>
-        <pose frame=''>9.32453 -0.210865 2 0 0 -0.001928</pose>
+        <pose frame=''>9.32456 -0.210842 1.99999 0 0 -0.002798</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>9.32453 -0.210865 2 0 0 -0.001928</pose>
+          <pose frame=''>9.32456 -0.210842 1.99999 0 0 -0.002798</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_34'>
-        <pose frame=''>9.51387 -1.8325 2 0 0 -0.001771</pose>
+        <pose frame=''>9.5139 -1.83248 1.99999 0 0 -0.002641</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>9.51387 -1.8325 2 0 0 -0.001771</pose>
+          <pose frame=''>9.5139 -1.83248 1.99999 0 0 -0.002641</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_35'>
-        <pose frame=''>8.50975 1.63077 2 0 0 -0.001867</pose>
+        <pose frame=''>8.50978 1.63079 1.99999 0 0 -0.002737</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>8.50975 1.63077 2 0 0 -0.001867</pose>
+          <pose frame=''>8.50978 1.63079 1.99999 0 0 -0.002737</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_36'>
-        <pose frame=''>4.30531 -3.69412 1.99999 0 0 -0.00171</pose>
+        <pose frame=''>4.30534 -3.6941 2 0 0 -0.002606</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>4.30531 -3.69412 1.99999 0 0 -0.00171</pose>
+          <pose frame=''>4.30534 -3.6941 2 0 0 -0.002606</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_37'>
-        <pose frame=''>3.48261 2.78645 1.99999 0 0 -0.001922</pose>
+        <pose frame=''>3.48264 2.78647 2 0 0 -0.002818</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>3.48261 2.78645 1.99999 0 0 -0.001922</pose>
+          <pose frame=''>3.48264 2.78647 2 0 0 -0.002818</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_38'>
-        <pose frame=''>0.265044 -5.35658 2 0 0 -0.001965</pose>
+        <pose frame=''>0.265071 -5.35656 1.99999 0 0 -0.002835</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>0.265044 -5.35658 2 0 0 -0.001965</pose>
+          <pose frame=''>0.265071 -5.35656 1.99999 0 0 -0.002835</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_39'>
-        <pose frame=''>-1.55214 -6.51048 2 0 0 -0.001943</pose>
+        <pose frame=''>-1.55211 -6.51046 1.99999 0 0 -0.002813</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>-1.55214 -6.51048 2 0 0 -0.001943</pose>
+          <pose frame=''>-1.55211 -6.51046 1.99999 0 0 -0.002813</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_4'>
-        <pose frame=''>-3.98093 -1.32844 1.99999 0 0 -0.001802</pose>
+        <pose frame=''>-3.9809 -1.32842 2 0 0 -0.002698</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>-3.98093 -1.32844 1.99999 0 0 -0.001802</pose>
+          <pose frame=''>-3.9809 -1.32842 2 0 0 -0.002698</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_40'>
-        <pose frame=''>0.580205 -8.26414 2 0 0 -0.001857</pose>
+        <pose frame=''>0.580232 -8.26412 1.99999 0 0 -0.002727</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>0.580205 -8.26414 2 0 0 -0.001857</pose>
+          <pose frame=''>0.580232 -8.26412 1.99999 0 0 -0.002727</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_41'>
-        <pose frame=''>-1.47458 -9.43798 2 0 0 -0.001901</pose>
+        <pose frame=''>-1.47455 -9.43796 1.99999 0 0 -0.002771</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>-1.47458 -9.43798 2 0 0 -0.001901</pose>
+          <pose frame=''>-1.47455 -9.43796 1.99999 0 0 -0.002771</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_42'>
-        <pose frame=''>2.34082 -5.83823 1.99999 0 0 -0.002368</pose>
+        <pose frame=''>2.34085 -5.83821 2 0 0 -0.003264</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>2.34082 -5.83823 1.99999 0 0 -0.002368</pose>
+          <pose frame=''>2.34085 -5.83821 2 0 0 -0.003264</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_43'>
-        <pose frame=''>-2.4424 -4.26846 1.99999 0 0 -0.002368</pose>
+        <pose frame=''>-2.44237 -4.26844 2 0 0 -0.003264</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>-2.4424 -4.26846 1.99999 0 0 -0.002368</pose>
+          <pose frame=''>-2.44237 -4.26844 2 0 0 -0.003264</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_44'>
-        <pose frame=''>0.714297 -2.73572 2 0 0 -0.001927</pose>
+        <pose frame=''>0.714324 -2.7357 1.99999 0 0 -0.002797</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>0.714297 -2.73572 2 0 0 -0.001927</pose>
+          <pose frame=''>0.714324 -2.7357 1.99999 0 0 -0.002797</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_44_clone'>
-        <pose frame=''>-0.342933 -1.09753 1.99999 0 0 -0.001921</pose>
+        <pose frame=''>-0.342905 -1.09751 2 0 0 -0.002817</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>-0.342933 -1.09753 1.99999 0 0 -0.001921</pose>
+          <pose frame=''>-0.342905 -1.09751 2 0 0 -0.002817</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_44_clone_0'>
-        <pose frame=''>-0.948743 0.84778 2 0 0 -0.001567</pose>
+        <pose frame=''>-0.948716 0.847803 1.99999 0 0 -0.002437</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>-0.948743 0.84778 2 0 0 -0.001567</pose>
+          <pose frame=''>-0.948716 0.847803 1.99999 0 0 -0.002437</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_44_clone_1'>
-        <pose frame=''>1.37638 -0.602163 2 0 0 -0.001289</pose>
+        <pose frame=''>1.37641 -0.60214 1.99999 0 0 -0.002159</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>1.37638 -0.602163 2 0 0 -0.001289</pose>
+          <pose frame=''>1.37641 -0.60214 1.99999 0 0 -0.002159</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_44_clone_2'>
-        <pose frame=''>7.63626 -0.812019 1.99999 0 0 -0.000808</pose>
+        <pose frame=''>7.63629 -0.811995 2 0 0 -0.001704</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>7.63626 -0.812019 1.99999 0 0 -0.000808</pose>
+          <pose frame=''>7.63629 -0.811995 2 0 0 -0.001704</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_44_clone_3'>
-        <pose frame=''>2.01412 4.1063 2 0 0 -0.000483</pose>
+        <pose frame=''>2.01415 4.10632 1.99999 0 0 -0.001353</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>2.01412 4.1063 2 0 0 -0.000483</pose>
+          <pose frame=''>2.01415 4.10632 1.99999 0 0 -0.001353</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_44_clone_4'>
-        <pose frame=''>2.07412 -8.02983 1.99999 0 0 -5e-06</pose>
+        <pose frame=''>2.07415 -8.02981 2 0 0 -0.000901</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>2.07412 -8.02983 1.99999 0 0 -5e-06</pose>
+          <pose frame=''>2.07415 -8.02981 2 0 0 -0.000901</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_44_clone_5'>
-        <pose frame=''>-3.42301 4.66513 2 0 -0 0.000479</pose>
+        <pose frame=''>-3.42298 4.66515 1.99999 0 0 -0.000391</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>-3.42301 4.66513 2 0 -0 0.000479</pose>
+          <pose frame=''>-3.42298 4.66515 1.99999 0 0 -0.000391</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_45'>
-        <pose frame=''>1.78346 -3.86861 1.99999 0 0 -0.002198</pose>
+        <pose frame=''>1.78349 -3.86859 2 0 0 -0.003094</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>1.78346 -3.86861 1.99999 0 0 -0.002198</pose>
+          <pose frame=''>1.78349 -3.86859 2 0 0 -0.003094</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_5'>
-        <pose frame=''>-4.8155 1.25341 2 0 0 -0.001822</pose>
+        <pose frame=''>-4.81547 1.25343 1.99999 0 0 -0.002692</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>-4.8155 1.25341 2 0 0 -0.001822</pose>
+          <pose frame=''>-4.81547 1.25343 1.99999 0 0 -0.002692</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_6'>
-        <pose frame=''>-3.52324 3.00015 1.99999 0 0 -0.002023</pose>
+        <pose frame=''>-3.52321 3.00017 2 0 0 -0.002919</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>-3.52324 3.00015 1.99999 0 0 -0.002023</pose>
+          <pose frame=''>-3.52321 3.00017 2 0 0 -0.002919</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_7'>
-        <pose frame=''>-2.39992 -2.9319 1.99999 0 0 -0.001922</pose>
+        <pose frame=''>-2.39989 -2.93188 2 0 0 -0.002818</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>-2.39992 -2.9319 1.99999 0 0 -0.001922</pose>
+          <pose frame=''>-2.39989 -2.93188 2 0 0 -0.002818</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_8'>
-        <pose frame=''>-2.8561 0.44441 1.99999 0 0 -0.00197</pose>
+        <pose frame=''>-2.85607 0.444434 2 0 0 -0.002866</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>-2.8561 0.44441 1.99999 0 0 -0.00197</pose>
+          <pose frame=''>-2.85607 0.444434 2 0 0 -0.002866</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_8_clone'>
-        <pose frame=''>-6.27251 3.31116 1.99999 0 0 -0.00186</pose>
+        <pose frame=''>-6.27248 3.31118 2 0 0 -0.002756</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>-6.27251 3.31116 1.99999 0 0 -0.00186</pose>
+          <pose frame=''>-6.27248 3.31118 2 0 0 -0.002756</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_cylinder_clone_8_clone_0'>
-        <pose frame=''>-0.938828 -3.02061 1.99999 0 0 -0.00199</pose>
+        <pose frame=''>-0.9388 -3.02059 2 0 0 -0.002886</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>-0.938828 -3.02061 1.99999 0 0 -0.00199</pose>
+          <pose frame=''>-0.9388 -3.02059 2 0 0 -0.002886</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 -9.8 0 -0 0</acceleration>
           <wrench>0 0 -9800 0 -0 0</wrench>
         </link>
       </model>
       <model name='unit_sphere'>
-        <pose frame=''>14.9329 2.79253 0.960141 0 -0 0</pose>
+        <pose frame=''>14.9329 2.79253 1.32632 0 -0 0</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>14.9329 2.79253 0.960141 0 -0 0</pose>
+          <pose frame=''>14.9329 2.79253 1.32632 0 -0 0</pose>
           <velocity>0 0 0.01 0 -0 0</velocity>
           <acceleration>0 0 0 0 -0 0</acceleration>
           <wrench>0 0 0 0 -0 0</wrench>
@@ -5882,7 +5882,7 @@
     </model>
     <gui fullscreen='0'>
       <camera name='user_camera'>
-        <pose frame=''>0 0 35.2914 3.14159 1.57079 3.14159</pose>
+        <pose frame=''>-2.29711 0.345727 25.3485 0 1.5698 3.13359</pose>
         <view_controller>orbit</view_controller>
         <projection_type>perspective</projection_type>
       </camera>
