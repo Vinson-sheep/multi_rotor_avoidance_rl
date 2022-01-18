@@ -9,15 +9,17 @@ import TD3
 import numpy as np
 import os
 import pickle
+from multi_rotor_avoidance_rl.msg import State
 
 # hyper parameter
 max_testing_num = 100
 
-restore_able = True
+restore_able = False
 
 policy = "TD3" # DDPG or TD3
-filter = "FOLF" # NONE / FIR / MAF / FOLF
-game_name = "train_env_7m" # test_env_corridor / test_env_cluster / train_env_??
+filter = "MAF" # NONE / FIR / MAF / FOLF
+game_name = "train_env_cluster" # test_env_corridor / test_env_cluster / train_env_??
+recover_mode = True
 
 # FIR filter
 
@@ -26,18 +28,23 @@ window_size = 10
 # First-Order Lag Filter
 action_discount = 0.2
 
+# recover_mode
+recover_time = 1.5
+recover_limit = 0.3
+deltaT = 0.4
+
 # DDPG and TD3 params
-state_dim = 39
+state_dim = 41
 action_dim = 2
 # hidden_dim = 500
-hidden_dim = 300
+hidden_dim = 350
 
 # variable
 testing_num_begin = 0
 cur_testing_num = 0
 cur_success_num = 0
 cur_crash_num = 0
-cur_trap_num = 0
+recovery_num = 0
 
 # file url
 data_url = os.path.dirname(os.path.realpath(__file__)) + '/data/' + policy + '/'
@@ -50,10 +57,10 @@ def save():
     pickle.dump(cur_testing_num,save_file)
     pickle.dump(cur_success_num,save_file)
     pickle.dump(cur_crash_num, save_file)
-    pickle.dump(cur_trap_num, save_file)
+    pickle.dump(recovery_num, save_file)
 
     print("store cur_testing_num: ", cur_testing_num, "cur_success_num: ", cur_success_num, 
-        "cur_crash_num: ", cur_crash_num, "cur_trap_num", cur_trap_num)
+        "cur_crash_num: ", cur_crash_num, "recovery_num", recovery_num)
 
     save_file.close()
     
@@ -64,12 +71,12 @@ def load():
     cur_testing_num=pickle.load(load_file)
     cur_success_num=pickle.load(load_file)
     cur_crash_num = pickle.load(load_file)
-    cur_trap_num = pickle.load(load_file)
+    recovery_num = pickle.load(load_file)
 
     print("restore cur_testing_num: ", cur_testing_num, "cur_success_num: ", cur_success_num, 
-        "cur_crash_num: ", cur_crash_num, "cur_trap_num", cur_trap_num)
+        "cur_crash_num: ", cur_crash_num, "recovery_num", recovery_num)
 
-    return cur_testing_num, cur_success_num, cur_crash_num, cur_trap_num
+    return cur_testing_num, cur_success_num, cur_crash_num, recovery_num
 
 if __name__ == '__main__':
 
@@ -79,6 +86,7 @@ if __name__ == '__main__':
     # raw data
     rawCmdPub = rospy.Publisher("raw_cmd", PositionTarget, queue_size=1)
     modCmdPub = rospy.Publisher("mod_cmd", PositionTarget, queue_size=1)
+    statePub = rospy.Publisher("state", State, queue_size=1)
 
     # wait for world building
     rospy.sleep(rospy.Duration(3))
@@ -118,7 +126,7 @@ if __name__ == '__main__':
 
     # load data if true
     if restore_able == True:
-        cur_testing_num, cur_success_num, cur_crash_num, cur_trap_num = load()
+        cur_testing_num, cur_success_num, cur_crash_num, recovery_num = load()
 
     cur_testing_num += 1
     testing_num_begin = cur_testing_num
@@ -135,13 +143,21 @@ if __name__ == '__main__':
             s0 = env.reset()
             print("restore testing.")
 
+        recovery_flag = False
+
         # no filter
         if (filter == "NONE"):
 
             for step in range(1000):
 
                 begin_time = rospy.Time.now()
-                
+
+                # DEBUG
+                msg = State()
+                msg.header.stamp = rospy.Time.now()
+                msg.data = s0
+                statePub.publish(msg)
+
                 a0 = agent.act(s0)
 
                 # DEBUG
@@ -153,14 +169,28 @@ if __name__ == '__main__':
                 # DEBUG
                 modCmdPub.publish(pt)
 
+                # recovery check
+                valid_flag, _ = env.is_valid(s0, [pt.velocity.x, pt.yaw_rate], time_step=deltaT, limit=recover_limit)
+
+                if recover_mode and not valid_flag:
+                    recovery_flag = True
+                    if env.recovery(time=recover_time): # if crash when recovering
+                        cur_crash_num += 1
+                        print("recover but crash!")
+                        break
+
+                    s0 = env.cur_state()
+                    continue
+
                 # step
                 s1, _, done = env.step(step_time, pt.velocity.x, 0, pt.yaw_rate)
-                
+        
                 s0 = s1
 
                 # check result
                 crash_indicator, _, _ = env.is_crashed()
                 arrive_indicator = env.is_arrived()
+
 
                 if done == True:
                     if crash_indicator == True:
@@ -187,6 +217,12 @@ if __name__ == '__main__':
 
                 begin_time = rospy.Time.now()
                 
+                # DEBUG
+                msg = State()
+                msg.header.stamp = rospy.Time.now()
+                msg.data = s0
+                statePub.publish(msg)
+
                 a0 = agent.act(s0)
 
                 # DEBUG
@@ -211,6 +247,20 @@ if __name__ == '__main__':
                 pt.velocity.x = (np.mean(window_vx_copy[1:-1])+1)/4.0
                 pt.yaw_rate = np.mean(window_vyaw_copy[1:-1])
                 modCmdPub.publish(pt)
+
+                # recovery check
+                valid_flag, _ = env.is_valid(s0, [pt.velocity.x, pt.yaw_rate], time_step=deltaT, limit=recover_limit)
+
+                if recover_mode and not valid_flag:
+                    recovery_flag = True
+                    if env.recovery(time=recover_time): # if crash when recovering
+                        cur_crash_num += 1
+                        print("recover but crash!")
+                        break
+
+                    s0 = env.cur_state()
+                    continue
+                    
 
                 # step
                 s1, _, done = env.step(step_time, pt.velocity.x, 0, pt.yaw_rate)
@@ -241,6 +291,12 @@ if __name__ == '__main__':
 
                 begin_time = rospy.Time.now()
                 
+                # DEBUG
+                msg = State()
+                msg.header.stamp = rospy.Time.now()
+                msg.data = s0
+                statePub.publish(msg)
+
                 a0 = agent.act(s0)
 
                 # DEBUG
@@ -256,6 +312,19 @@ if __name__ == '__main__':
                 pt.velocity.x = (momentum[0]+1)/4.0
                 pt.yaw_rate = momentum[1]
                 modCmdPub.publish(pt)
+
+                # recovery check
+                valid_flag, _ = env.is_valid(s0, [pt.velocity.x, pt.yaw_rate], time_step=deltaT, limit=recover_limit)
+
+                if recover_mode and not valid_flag:
+                    recovery_flag = True
+                    if env.recovery(time=recover_time): # if crash when recovering
+                        cur_crash_num += 1
+                        print("recover but crash!")
+                        break
+
+                    s0 = env.cur_state()
+                    continue
 
                 # step
                 s1, _, done = env.step(step_time, pt.velocity.x, 0, pt.yaw_rate)
@@ -278,9 +347,10 @@ if __name__ == '__main__':
                 rospy.sleep(rospy.Duration(step_time)-(rospy.Time.now() - begin_time))
             
         
+        if recovery_flag:
+            recovery_num +=1
 
-        cur_trap_num = episode - cur_success_num - cur_crash_num
-        print('[' + str(episode) + ']', ' success_num', cur_success_num, ' crash_num', cur_crash_num, ' trap_num', cur_trap_num)
+        print('[' + str(episode) + ']', ' success_num', cur_success_num, ' crash_num', cur_crash_num, ' recovery_num', recovery_num)
 
         save()
 

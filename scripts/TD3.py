@@ -232,12 +232,43 @@ class Agent(object):
             self.buffer.load()
             print("load buffer data.")
 
-        
 
-        
-                                           
-  
+if __name__ == '__main__':
 
-        
+    import rospy
+
+    # initialize ros
+    rospy.init_node("testing_node")
+
+    # initialize agent
+    kwargs = {
+        'state_dim': 41,
+        'action_dim': 2,
+        'hidden_dim': 350,
+        'discount': 0,
+        'actor_lr': 0,
+        'critic_lr': 0,
+        'tau': 0,
+        'buffer_size': 0,
+        'batch_size': 0,
+        'alpha': 0,
+        'hyper_parameters_eps': 0,
+        'policy_noise': 0,
+        'noise_clip': 0,
+        'policy_freq': 0,
+        'load_buffer_flag': False,
+        'load_actor_flag': False,
+        'load_critic_flag': False,
+        'load_optim_flag': False,
+        'fix_actor_flag': False,
+        'policy': "TD3"
+    } 
+
+    agent = Agent(**kwargs)
+
+    while not rospy.is_shutdown():
+        begin_time = rospy.Time.now()
+        agent.act(np.zeros(41))
+        print((rospy.Time.now() - begin_time).to_sec())
                                            
   

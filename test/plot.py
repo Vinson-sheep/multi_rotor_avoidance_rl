@@ -44,7 +44,7 @@ def cmdCB(msg):
     myPT = msg
 
     # update queue
-    if (len(yaw_rate) > 500):
+    if (len(yaw_rate) > 100):
         yaw_rate.pop(0)
         velocity_x.pop(0)
 

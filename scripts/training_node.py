@@ -12,20 +12,25 @@ import visdom
 import scipy.io as sio
 import os
 import threading
+from multi_rotor_avoidance_rl.msg import State
 
 # hyper parameter
 epsilon = 0.8
 epsilon_decay = 0.9999
 
-load_able = True # True if you want to load previous data
+load_able = False # True if you want to load previous data
 
 policy = "TD3" # DDPG or TD3
-game_name = "train_env_7m" # empty_?m / train_env_?m
+filter = "NONE" # NONE / FIR / MAF / FOLF
+game_name = "train_env_3m"
 
-action_discount = 1.0   # set 1.0 to forbidden momentum
+# Median Average Filter
+window_size = 6
+# First-Order Lag Filter
+action_discount = 0.2
 
 # DDPG and TD3 params
-state_dim = 39
+state_dim = 41
 action_dim = 2
 # hidden_dim = 500
 hidden_dim = 300
@@ -47,13 +52,13 @@ noise_clip = 0.5
 policy_freq = 2
 
 # game params
-load_buffer_flag = True
+load_buffer_flag = False
 load_actor_flag = True
 load_critic_flag = True
-load_optim_flag = True
-fix_actor_flag = False
+load_optim_flag = False
+fix_actor_flag = True
 
-max_episode = 300
+max_episode = 30
 max_step_size = 300
 
 # variable
@@ -91,6 +96,8 @@ opts3={
 # file url
 data_url = os.path.dirname(os.path.realpath(__file__)) + '/data/' + policy + '/'
 
+step_time = 0.1
+
 class myThread(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
@@ -121,6 +128,8 @@ if __name__ == '__main__':
 
     # raw data
     rawCmdPub = rospy.Publisher("raw_cmd", PositionTarget, queue_size=1)
+    modCmdPub = rospy.Publisher("mod_cmd", PositionTarget, queue_size=1)
+    statePub = rospy.Publisher("state", State, queue_size=1)
 
     # wait for world building
     rospy.sleep(rospy.Duration(3))
@@ -193,13 +202,6 @@ if __name__ == '__main__':
     # start to train
     for episode in range(episode_begin, max_episode):
 
-        # DEBUG
-        pt = PositionTarget()
-        pt.type_mask = 2
-        pt.velocity.x = 0
-        pt.yaw_rate = 0
-        rawCmdPub.publish(pt)
-
         if episode == episode_begin:
             s0 = env.start()
             print("start!")
@@ -209,48 +211,185 @@ if __name__ == '__main__':
 
         episode_reward = 0
 
-        momentum = [0.0]*action_dim
+        # no filter
+        if (filter == "NONE"):
 
-        for step in range(max_step_size):
+            for step in range(max_step_size):
 
-            step_count_begin += 1
-            s.append(step_count_begin)
-            a0 = agent.act(s0)
+                step_count_begin += 1
+                s.append(step_count_begin)
 
-            # DEBUG
-            pt = PositionTarget()
-            pt.type_mask = 1
-            pt.velocity.x = (a0[0]+1)/4.0
-            pt.yaw_rate = a0[1]
-            rawCmdPub.publish(pt)
+                # DEBUG
+                msg = State()
+                msg.header.stamp = rospy.Time.now()
+                msg.data = s0
+                statePub.publish(msg)
 
-            # E-greedy
-            if epsilon > np.random.random():
-                a0[0] = np.clip(a0[0] + np.random.choice([-1, 1])* np.random.random()*0.5, -1.0, 1.0)
-                a0[1] = np.clip(a0[1] + np.random.choice([-1, 1])* np.random.random()*0.5, -1.0, 1.0)
+                a0 = agent.act(s0)
 
-            # monmentum
-            momentum[0] = (1-action_discount)*momentum[0] + action_discount*a0[0]
-            momentum[1] = (1-action_discount)*momentum[1] + action_discount*a0[1]
+                # DEBUG
+                pt = PositionTarget()
+                pt.velocity.x = (a0[0]+1)/4.0
+                pt.yaw_rate = a0[1]
+                rawCmdPub.publish(pt)
 
-            s1, r1, done = env.step(0.1, (momentum[0]+1)/4.0, 0, momentum[1])
-             
-            q_value = agent.put(s0, a0, r1, s1, done)
+                # E-greedy
+                if epsilon > np.random.random():
+                    a0[0] = np.clip(a0[0] + np.random.choice([-1, 1])* np.random.random()*0.8, -1.0, 1.0)
+                    a0[1] = np.clip(a0[1] + np.random.choice([-1, 1])* np.random.random()*0.5, -1.0, 1.0)
 
-            epsilon = max(epsilon_decay*epsilon, 0.10)
-            print("eps = ", epsilon)
+                # DEBUG
+                pt.velocity.x = (a0[0]+1)/4.0
+                pt.yaw_rate = a0[1]
+                modCmdPub.publish(pt)
 
-            r.append(r1)
-            q.append(q_value)
+                s1, r1, done = env.step(step_time, pt.velocity.x, 0, pt.yaw_rate)
+                
+                q_value = agent.put(s0, a0, r1, s1, done)
 
-            episode_reward += r1
-            s0 = s1
+                epsilon = max(epsilon_decay*epsilon, 0.10)
 
-            agent.learn()
+                r.append(r1)
+                q.append(q_value)
 
-            if done:
-                break
+                episode_reward += r1
+                s0 = s1
 
+                agent.learn()
+
+                if done:
+                    break
+
+        # FIR filter
+        if (filter == "FIR"):
+            pass
+
+        # Median Average Filter
+        if (filter == "MAF"):
+
+            window_vx = [0.0]*window_size
+            window_vyaw = [0.0]*window_size
+
+            for step in range(max_step_size):
+
+                step_count_begin += 1
+                s.append(step_count_begin)
+
+                # DEBUG
+                msg = State()
+                msg.header.stamp = rospy.Time.now()
+                msg.data = s0
+                statePub.publish(msg)
+
+                a0 = agent.act(s0)
+
+                # E-greedy
+                if epsilon > np.random.random():
+                    a0[0] = np.clip(a0[0] + np.random.choice([-1, 1])* np.random.random()*0.5, -1.0, 1.0)
+                    a0[1] = np.clip(a0[1] + np.random.choice([-1, 1])* np.random.random()*0.5, -1.0, 1.0)
+
+                # DEBUG
+                pt = PositionTarget()
+                pt.velocity.x = (a0[0]+1)/4.0
+                pt.yaw_rate = a0[1]
+                rawCmdPub.publish(pt)
+
+                # update queue
+                window_vx.pop(0)
+                window_vx.append(a0[0])
+                window_vyaw.pop(0)
+                window_vyaw.append(a0[1])
+
+                # copy data and sort
+                window_vyaw_copy = window_vyaw[:]
+                window_vyaw_copy.sort()
+                window_vx_copy = window_vx[:]
+                window_vx_copy.sort()
+
+                # DEBUG
+                if window_size <= 2:
+                    pt.velocity.x = (np.mean(window_vx_copy)+1)/4.0
+                    pt.yaw_rate = np.mean(window_vyaw_copy)
+                else:
+                    pt.velocity.x = (np.mean(window_vx_copy[1:-1])+1)/4.0
+                    pt.yaw_rate = np.mean(window_vyaw_copy[1:-1])
+                modCmdPub.publish(pt)
+
+                s1, r1, done = env.step(step_time, pt.velocity.x, 0, pt.yaw_rate)
+                
+                q_value = agent.put(s0, a0, r1, s1, done)
+
+                epsilon = max(epsilon_decay*epsilon, 0.10)
+
+                r.append(r1)
+                q.append(q_value)
+
+                episode_reward += r1
+                s0 = s1
+
+                agent.learn()
+                
+                if done:
+                    break
+
+                
+
+        # First-Order Lag Filter
+        if (filter == "FOLF"):
+
+            momentum = [0.0]*action_dim
+
+            for step in range(max_step_size):
+
+                step_count_begin += 1
+                s.append(step_count_begin)
+
+                # DEBUG
+                msg = State()
+                msg.header.stamp = rospy.Time.now()
+                msg.data = s0
+                statePub.publish(msg)
+
+                a0 = agent.act(s0)
+
+                # E-greedy
+                if epsilon > np.random.random():
+                    a0[0] = np.clip(a0[0] + np.random.choice([-1, 1])* np.random.random()*0.5, -1.0, 1.0)
+                    a0[1] = np.clip(a0[1] + np.random.choice([-1, 1])* np.random.random()*0.5, -1.0, 1.0)
+
+                # DEBUG
+                pt = PositionTarget()
+                pt.velocity.x = (a0[0]+1)/4.0
+                pt.yaw_rate = a0[1]
+                rawCmdPub.publish(pt)
+
+                # monmentum
+                momentum[0] = (1-action_discount)*momentum[0] + action_discount*a0[0]
+                momentum[1] = (1-action_discount)*momentum[1] + action_discount*a0[1]
+
+                # DEBUG
+                pt.velocity.x = (momentum[0]+1)/4.0
+                pt.yaw_rate = momentum[1]
+                modCmdPub.publish(pt)
+
+                s1, r1, done = env.step(step_time, pt.velocity.x, 0, pt.yaw_rate)
+                
+                q_value = agent.put(s0, a0, r1, s1, done)
+
+                epsilon = max(epsilon_decay*epsilon, 0.10)
+
+                r.append(r1)
+                q.append(q_value)
+
+                episode_reward += r1
+                s0 = s1
+
+                agent.learn()
+
+                if done:
+                    break
+
+        print("eps = ", epsilon)
         print(episode, ': ', episode_reward)
 
         e.append(episode)
