@@ -11,8 +11,8 @@ output_num = 35
 class laser_filter_downsample:
     def __init__(self):
 
-        self.laserSub = rospy.Subscriber("/iris_0/scan_filtered", LaserScan, self.laserCB)
-        self.laserPub = rospy.Publisher("/iris_0/scan_downsampled", LaserScan, queue_size=1)
+        self.laserSub = rospy.Subscriber("/iris/scan_filtered", LaserScan, self.laserCB)
+        self.laserPub = rospy.Publisher("/iris/scan_downsampled", LaserScan, queue_size=1)
 
 
     def laserCB(self, msg):

@@ -72,6 +72,6 @@ if __name__ == "__main__":
 
     cmdSub = rospy.Subscriber("mod_cmd", PositionTarget, cmdCB, queue_size=10)
     rawSub = rospy.Subscriber("raw_cmd", PositionTarget, rawCB, queue_size=10)
-    twistSub = rospy.Subscriber("iris_0/mavros/local_position/velocity_body", TwistStamped, twistCB, queue_size=10)
+    twistSub = rospy.Subscriber("iris/mavros/local_position/velocity_body", TwistStamped, twistCB, queue_size=10)
 
     rospy.spin()

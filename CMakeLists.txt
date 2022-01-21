@@ -102,7 +102,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES multi_rotor_avoidance_rl
-#  CATKIN_DEPENDS other_catkin_pkg
+# CATKIN_DEPENDS roscpp rospy std_msgs message_runtime
 #  DEPENDS system_lib
 )
 

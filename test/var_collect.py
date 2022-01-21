@@ -12,7 +12,7 @@ import pickle
 from mavros_msgs.msg import PositionTarget
 from geometry_msgs.msg import TwistStamped
 
-load_data = True
+load_data = False
 
 count = 0
 
@@ -112,7 +112,7 @@ if __name__ == "__main__":
         print("load data.")
 
     cmdSub = rospy.Subscriber("/mod_cmd", PositionTarget, cmdCB, queue_size=10)
-    realSub = rospy.Subscriber("/iris_0/mavros/local_position/velocity_body", TwistStamped, realCB, queue_size=10)
+    realSub = rospy.Subscriber("/iris/mavros/local_position/velocity_body", TwistStamped, realCB, queue_size=10)
     resetTimer = rospy.Timer(rospy.Duration(2.0), resetCB)
 
     rospy.spin()

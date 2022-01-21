@@ -1,6 +1,8 @@
 #! /usr/bin/env python
 #-*- coding: UTF-8 -*- 
 from math import atan2
+
+from torch import set_flush_denormal
 import rospy
 from rospy.rostime import Duration
 
@@ -15,7 +17,7 @@ from gazebo_msgs.srv import SetModelState, GetModelState, GetModelStateRequest, 
 from gazebo_msgs.msg import ModelState 
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from multi_rotor_avoidance_rl.msg import Reward, Acc
-
+from common.world import World
 import random
 import numpy as np
 import math
@@ -30,7 +32,8 @@ class Game:
         """
 
 
-        self.model_name = model_name # uav name
+        self.model_name = model_name
+        self.game_name = game_name
 
         self.mavrosState = State()
         self.pose = Pose()
@@ -67,36 +70,50 @@ class Game:
         self.kf_x = KalmanFilter(initial_state_mean=0, n_dim_obs=1)
         self.kf_yaw = KalmanFilter(initial_state_mean=0, n_dim_obs=1)
 
-        self.game_name = game_name
-
-        # initialize grid
+        # initialize world
         if (game_name == "empty_3m"):
-            self.home_list = [0]
-            self.target_list = [-3, 3]
+            self.safe_space = [[0, 0], [3, 0]]
+            self.safe_radius = [1.0, 0.8]
             self.target_distance = 3
+            self.wall_rate = 0.0
+            self.cylinder_num = 0
+
+        if (game_name == "train_env_3m_lite"):
+            self.safe_space = [[0, 0], [3, 0]]
+            self.safe_radius = [1.0, 0.8]
+            self.target_distance = 3
+            self.wall_rate = 0.5
+            self.cylinder_num = 65
+
+        if (game_name == "train_env_3m"):
+            self.safe_space = [[0, 0], [3, 0]]
+            self.safe_radius = [1.0, 0.8]
+            self.target_distance = 3
+            self.wall_rate = 0.8
+            self.cylinder_num = 130
+        
+        if (game_name == "train_env_7m"):
+            self.safe_space = [[0, 0], [7, 0]]
+            self.safe_radius = [1.0, 0.8]
+            self.target_distance = 7
+            self.wall_rate = 0.8
+            self.cylinder_num = 130
 
         if (game_name == "test_env_corridor" 
             or game_name == "test_env_cluster"):
-            self.home_list = [[0, 0]]
-            self.target_list = [[-7, 0], [7, 0], [0, -7], [0, 7]]
-
-        if (game_name == "train_env_3m"
-            or game_name == "train_env_3m_lite"):
-            self.home_list = [-9, -6, -3, 0, 3, 6, 9]
-            self.target_list = self.home_list
-            self.target_distance = 3
-            
-        if (game_name == "train_env_7m"):
-            self.home_list = [-7, 0, 7]
-            self.target_list = self.home_list
+            self.safe_space = [[0, 0]]
+            self.safe_radius = [1.0]
             self.target_distance = 7
+            self.wall_rate = 0
+            self.cylinder_num = 0
+
+        self.world = World(self.safe_space, self.safe_radius, wall_rate=self.wall_rate, cylinder_num=self.cylinder_num)
 
         # subscriber
         self.mavrosStateSub = rospy.Subscriber(self.model_name + "/mavros/state", State, self._mavrosStateCB)
         self.scanSub = rospy.Subscriber(self.model_name + "/scan_downsampled", LaserScan, self._scanCB)
         self.bodyVelocitySub = rospy.Subscriber(self.model_name + "/mavros/local_position/velocity_body", TwistStamped, self._bodyVelocityCB)
         
-
         # publisher
         self.ctrPub = rospy.Publisher(self.model_name + "/mavros/setpoint_raw/local", PositionTarget, queue_size=1)
         self.visionPub = rospy.Publisher(self.model_name + "/mavros/vision_pose/pose", PoseStamped, queue_size=1)
@@ -105,11 +122,9 @@ class Game:
         self.accPub = rospy.Publisher("accel_body", Acc, queue_size=1)
 
         # service client
-        self.setModelStateClient = rospy.ServiceProxy("/gazebo/set_model_state", SetModelState)
         self.armingClient = rospy.ServiceProxy(self.model_name + "/mavros/cmd/arming", CommandBool)
         self.setModeClient = rospy.ServiceProxy(self.model_name + "/mavros/set_mode", SetMode)
         self.modelStateClient = rospy.ServiceProxy("/gazebo/get_model_state", GetModelState)
-        self.resetWorldClient = rospy.ServiceProxy("/gazebo/reset_world", Empty)
 
         # Timer
         self.holdTimer = rospy.Timer(rospy.Duration(0.05), self._hold)
@@ -121,18 +136,8 @@ class Game:
         """
         self.step_count = 0
 
-        print("go backward.")
-        self.flag, _, self.crash_index = self.is_crashed()
-        while self.flag == True:
-            # calculate the vx and vy
-            alpha = self.scan.angle_min + self.scan.angle_increment * self.crash_index
-
-            vx = -math.cos(alpha) * 0.1
-            vy = -math.sin(alpha) * 0.1 
-            self._send_velocity_cmd(vx, vy, 0)
-            self.hold_flag = False
-            self.rate.sleep()
-            self.flag, _, self.crash_index = self.is_crashed() 
+        # keep away from obstacles
+        self.recovery(time=2)
 
         # stop in place
         while not self._is_hold():
@@ -140,43 +145,20 @@ class Game:
             self.hold_flag = False
             self.rate.sleep()
 
-
-        # make sure uav is holding
+        # holding
         self.hold_able = True
-
         while not self._is_hold():
-            rospy.sleep(rospy.Duration(0.1))
-
-        # uav fly height and hold
-        cur_pose = self.pose
-        
-        cmd_x = cur_pose.position.x
-        cmd_y = cur_pose.position.y
-        (_, _, cmd_yaw) = euler_from_quaternion([
-                                                cur_pose.orientation.x,
-                                                cur_pose.orientation.y,
-                                                cur_pose.orientation.z,
-                                                cur_pose.orientation.w
-                                                ])
-
-        while self._is_arrived(cmd_x, cmd_y, 6) == False or self._is_hold() == False:
-            self._send_position_cmd(cmd_x, cmd_y, cmd_yaw, height=6)
-            self.hold_flag = False
             self.rate.sleep()
-        
-        rospy.sleep(rospy.Duration(1))
+
+        # clear world
+        self.world.clear()
         
         # fly home
-        if (self.game_name == "test_env_corridor" 
-            or self.game_name == "test_env_cluster"):
-            home_x, home_y = random.choice(self.home_list)
-        else:
-            home_x = random.choice(self.home_list)
-            home_y = random.choice(self.home_list)
+        home_x = 0
+        home_y = 0
+        home_yaw = math.pi*random.uniform(-1, 1)
 
-        home_yaw = 3.1415926*random.choice([-1, 1])* np.random.random()
-
-        while self._is_arrived(home_x, home_y, 6) == False or self._is_hold() == False:
+        while not self._is_arrived(home_x, home_y, self.height) or not self._is_hold():
             
             if home_x > self.pose.position.x:
                 x_t = min(home_x, self.pose.position.x + 1)
@@ -188,55 +170,34 @@ class Game:
             else:
                 y_t = max(home_y, self.pose.position.y - 1)
 
-            self._send_position_cmd(x_t, y_t, cmd_yaw, height=6)
+            self._send_position_cmd(x_t, y_t, home_yaw, self.height)
             self.hold_flag = False
             self.rate.sleep()
 
-        rospy.sleep(rospy.Duration(1))
-        
-        # flg down and hold
-        while self._is_arrived(home_x, home_y, self.height) == False or self._is_hold() == False:
-            self._send_position_cmd(home_x, home_y, home_yaw, height=self.height)
-            self.hold_flag = False
-            self.rate.sleep()
 
+        # holding
         self.hold_able = True
-
-        rospy.sleep(rospy.Duration(1))
+        while not self._is_hold():
+            rospy.sleep(rospy.Duration(0.1))
 
         rospy.loginfo("initialize uav position.")
 
-        # randomize target point
+        # initialize target point
         if (self.game_name == "test_env_corridor" 
             or self.game_name == "test_env_cluster"):
-            self.target_x, self.target_y = random.choice(self.target_list)
+            target_list = [[0, 7], [7, 0], [0, -7], [-7, 0]]
+            self.target_x, self.target_y = random.choice(target_list)
         else:
-            self.target_x = 100
-            self.target_y = 100
-            while (not self.target_x in self.target_list or not self.target_y in self.target_list):
-                self.target_x = random.choice([self.target_distance, 0, -self.target_distance])
-                if (int(self.target_x) == 0):
-                    self.target_y = random.choice([self.target_distance, -self.target_distance]) + home_y
-                else:
-                    self.target_y = random.choice([self.target_distance, 0, -self.target_distance]) + home_y
-                    
-                self.target_x += home_x
+            self.target_x = self.target_distance
+            self.target_y = 0
 
-        target_msg = ModelState()
-        target_msg.model_name = 'unit_sphere'
-        target_msg.pose.position.x = self.target_x
-        target_msg.pose.position.y = self.target_y
-        target_msg.pose.position.z = self.height - 1
-        target_msg.pose.orientation.x = 0
-        target_msg.pose.orientation.y = 0
-        target_msg.pose.orientation.z = 0
-        target_msg.pose.orientation.w = 1
+        self.world.set_target(self.target_x, self.target_y)
 
-        # call service
-        self.setModelStateClient.wait_for_service()
-
-        self.setModelStateClient.call(target_msg)
         rospy.loginfo("initialize target position.")
+
+        # reset world
+        self.world.reset()
+        rospy.loginfo("reset_world.")
 
         return self.cur_state()
 
@@ -245,35 +206,23 @@ class Game:
             send take-off command
         """
         self.step_count = 0
-        
 
-        # randomize target point
+        # initialize target point
         if (self.game_name == "test_env_corridor" 
             or self.game_name == "test_env_cluster"):
-            self.target_x, self.target_y = random.choice(self.target_list)    
+            target_list = [[0, 7], [7, 0], [0, -7], [-7, 0]]
+            self.target_x, self.target_y = random.choice(target_list)
         else:
-            self.target_x = random.choice([self.target_distance, -self.target_distance])
-            self.target_y = random.choice([self.target_distance, -self.target_distance])
-            while (not self.target_x in self.target_list):
-                self.target_x = random.choice([self.target_distance, -self.target_distance])
-            while (not self.target_y in self.target_list):
-                self.target_y = random.choice([self.target_distance, -self.target_distance])
+            self.target_x = self.target_distance
+            self.target_y = 0
 
-        target_msg = ModelState()
-        target_msg.model_name = 'unit_sphere'
-        target_msg.pose.position.x = self.target_x
-        target_msg.pose.position.y = self.target_y
-        target_msg.pose.position.z = self.height - 1
-        target_msg.pose.orientation.x = 0
-        target_msg.pose.orientation.y = 0
-        target_msg.pose.orientation.z = 0
-        target_msg.pose.orientation.w = 1
+        self.world.set_target(self.target_x, self.target_y)
 
-        # call service
-        self.setModelStateClient.wait_for_service()
-
-        self.setModelStateClient.call(target_msg)
         rospy.loginfo("initialize target position.")
+
+        # reset world
+        self.world.reset()
+        rospy.loginfo("reset_world.")
 
         self.hold_able = False
 
@@ -422,10 +371,6 @@ class Game:
         last_pos_y_uav = self.pose.position.y
         last_distance = math.sqrt((self.target_x - last_pos_x_uav)**2 + (self.target_y - last_pos_y_uav)**2)
 
-        # valid reward
-        valid_reward = 0
-        # _, valid_reward = self.is_valid(self.cur_state(), [vx, yaw_rate], time_step=0.4, limit=0.3)
-
         # send control command for time_step period
         time = rospy.Time.now()
         while (rospy.Time.now() - time) < Duration(time_step):
@@ -495,13 +440,11 @@ class Game:
                         + self.acc_x_punish_reward \
                         + self.acc_yaw_punish_reward \
                         + right_turning_reward \
-                        # + valid_reward
 
 
         msg = Reward()
         msg.header.stamp = rospy.Time.now()
         msg.distance_reward = distance_reward
-        msg.valid_reward = valid_reward
         msg.arrive_reward = self.arrive_reward
         msg.crash_reward = crash_reward
         msg.laser_reward = laser_reward
@@ -517,6 +460,11 @@ class Game:
 
         self.hold_able = True
 
+        # out of limit
+        if self.pose.position.x < -10 or self.pose.position.x > 12:
+            self.done = True
+        if self.pose.position.y < -10 or self.pose.position.y > 10:
+            self.done = True
 
         return self.cur_state(), total_reward/20.0, self.done
 
@@ -615,7 +563,7 @@ class Game:
 
     def _vision(self, event):
         """
-            get iris_0 state, and send vision.
+            get iris state, and send vision.
         """
         # get stata
         req = GetModelStateRequest()
@@ -721,7 +669,7 @@ class Game:
 if __name__ == '__main__':
     rospy.init_node("test")
 
-    game = Game("iris_0", "empty_3m")
+    game = Game("iris", "empty_3m")
     game.start()
     for i in range(100):    
         for j in range(50):

@@ -18,13 +18,13 @@ restore_able = False
 
 policy = "TD3" # DDPG or TD3
 filter = "MAF" # NONE / FIR / MAF / FOLF
-game_name = "train_env_cluster" # test_env_corridor / test_env_cluster / train_env_??
-recover_mode = True
+game_name = "train_env_7m" # test_env_corridor / test_env_cluster / train_env_??
+recover_mode = False
 
 # FIR filter
 
 # Median Average Filter
-window_size = 10
+window_size = 8
 # First-Order Lag Filter
 action_discount = 0.2
 
@@ -37,7 +37,7 @@ deltaT = 0.4
 state_dim = 41
 action_dim = 2
 # hidden_dim = 500
-hidden_dim = 350
+hidden_dim = 300
 
 # variable
 testing_num_begin = 0
@@ -92,7 +92,7 @@ if __name__ == '__main__':
     rospy.sleep(rospy.Duration(3))
     
     # initialize environment
-    env = Game("iris_0", game_name)
+    env = Game("iris", game_name)
 
     # initialize agent
 

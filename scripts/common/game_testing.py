@@ -527,7 +527,7 @@ class Game:
         
     def _vision(self, event):
         """
-            get iris_0 state, and send vision.
+            get iris state, and send vision.
         """
         # get stata
         req = GetModelStateRequest()
@@ -635,7 +635,7 @@ class Game:
 if __name__ == '__main__':
     rospy.init_node("test")
 
-    game = Game("iris_0", "cluster")
+    game = Game("iris", "cluster")
     game.start()
     for i in range(100):    
         for j in range(50):

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
-    <node pkg="tf" type="static_transform_publisher" name="iris_0_base_link_to_laser"
-    args="0.0 0.0 0.06 0.0 0.0 0.0 /base_link /iris_0/laser_2d 40" />
+    <node pkg="tf" type="static_transform_publisher" name="iris_base_link_to_laser"
+    args="0.0 0.0 0.06 0.0 0.0 0.0 /base_link /iris/laser_2d 40" />
     <!-- MAVROS posix SITL environment launch script -->
     <!-- launches MAVROS, PX4 SITL, Gazebo environment, and spawns vehicle -->
     <!-- vehicle pose -->
@@ -14,8 +14,8 @@
     <!-- vehicle model and world -->
     <arg name="est" default="ekf2"/>
     <arg name="vehicle" default="iris"/>
-    <arg name="world" default="$(find multi_rotor_avoidance_rl)/worlds/train_env_3m_lite.world"/>
-    <arg name="sdf" default="$(find mavlink_sitl_gazebo)/models/falco/urdf/falco.sdf"/>
+    <arg name="world" default="$(find multi_rotor_avoidance_rl)/worlds/empty.world"/>
+    <arg name="sdf" default="$(find mavlink_sitl_gazebo)/models/falco/falco.sdf"/>
 
     <!-- gazebo configs -->
     <arg name="gui" default="true"/>
@@ -24,12 +24,13 @@
     <arg name="paused" default="false"/>
     <arg name="respawn_gazebo" default="false"/>
     <!-- MAVROS configs -->
-    <arg name="fcu_url" default="udp://:24540@localhost:34580"/>
+    <!-- <arg name="fcu_url" default="udp://:14540@localhost:14557"/> -->
+    <arg name="fcu_url" default="udp://:24540@127.0.0.1:34580"/>
     <arg name="respawn_mavros" default="false"/>
     <!-- PX4 configs -->
     <arg name="interactive" default="true"/>
     <!-- PX4 SITL and Gazebo -->
-    <include file="$(find px4)/launch/posix_sitl.launch">
+    <include file="$(find multi_rotor_avoidance_rl)/launch/posix_sitl.launch">
         <arg name="x" value="$(arg x)"/>
         <arg name="y" value="$(arg y)"/>
         <arg name="z" value="$(arg z)"/>
@@ -47,7 +48,7 @@
         <arg name="respawn_gazebo" value="$(arg respawn_gazebo)"/>
     </include>
     <!-- MAVROS -->
-    <group ns="iris_0">
+    <group ns="iris">
          <node pkg="mavros" type="mavros_node" name="mavros" output="screen" >
             <param name="fcu_url" value="$(arg fcu_url)" />
             <param name="gcs_url" value="" />
@@ -60,8 +61,8 @@
    
     <node pkg="laser_filters" type="scan_to_scan_filter_chain" name="laser_filter">
         <rosparam command="load" file="$(find multi_rotor_avoidance_rl)/launch/range_filter_sim.yaml" />
-        <remap from="scan" to="/iris_0/scan" />
-        <remap from="scan_filtered" to="/iris_0/scan_filtered" />
+        <remap from="scan" to="/iris/scan" />
+        <remap from="scan_filtered" to="/iris/scan_filtered" />
     </node>
 
 
