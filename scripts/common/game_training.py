@@ -2,20 +2,17 @@
 #-*- coding: UTF-8 -*- 
 from math import atan2
 
-from torch import set_flush_denormal
 import rospy
 from rospy.rostime import Duration
 
 # ros include
-from std_srvs.srv import Empty, EmptyRequest, EmptyResponse
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Twist, Pose, PoseStamped, TwistStamped, TwistWithCovarianceStamped
 from mavros_msgs.msg import PositionTarget, State
-from mavros_msgs.srv import CommandBool, CommandBoolRequest, CommandBoolResponse
-from mavros_msgs.srv import SetMode, SetModeRequest, SetModeResponse
-from gazebo_msgs.srv import SetModelState, GetModelState, GetModelStateRequest, GetModelStateResponse
-from gazebo_msgs.msg import ModelState 
-from tf.transformations import euler_from_quaternion, quaternion_from_euler
+from mavros_msgs.srv import CommandBool, CommandBoolRequest
+from mavros_msgs.srv import SetMode, SetModeRequest
+from gazebo_msgs.srv import GetModelState, GetModelStateRequest
+from tf.transformations import euler_from_quaternion
 from multi_rotor_avoidance_rl.msg import Reward, Acc
 from common.world import World
 import random
@@ -30,7 +27,6 @@ class Game:
         """
             initialize
         """
-
 
         self.model_name = model_name
         self.game_name = game_name
@@ -48,16 +44,11 @@ class Game:
         self.target_x = 10
         self.target_y = 10
 
-        self.state_num = 35+4
-        self.action_num = 2
-
-        self.momentum_discount = 0.4
-
         self.height = 2.0 # height of taking off
 
         self.step_count = 0
 
-        self.rate = rospy.Rate(20)
+        self.rate = rospy.Rate(30)
 
         self.hold_flag = False # if True, send hold command
         self.hold_able = False
@@ -72,32 +63,39 @@ class Game:
 
         # initialize world
         if (game_name == "empty_3m"):
-            self.safe_space = [[0, 0], [3, 0]]
+            self.safe_space = [[0, 0], [3.5, 0]]
             self.safe_radius = [1.0, 0.8]
-            self.target_distance = 3
-            self.wall_rate = 0.0
-            self.cylinder_num = 0
+            self.target_distance = 3.5
+            self.wall_rate = 0
+            self.cylinder_num = [0, 0]
+
+        if (game_name == "empty_7m"):
+            self.safe_space = [[0, 0], [7, 0]]
+            self.safe_radius = [1.0, 0.8]
+            self.target_distance = 7
+            self.wall_rate = 0
+            self.cylinder_num = [0, 0]
 
         if (game_name == "train_env_3m_lite"):
-            self.safe_space = [[0, 0], [3, 0]]
+            self.safe_space = [[0, 0], [3.5, 0]]
             self.safe_radius = [1.0, 0.8]
-            self.target_distance = 3
+            self.target_distance = 3.5
             self.wall_rate = 0.5
-            self.cylinder_num = 65
+            self.cylinder_num = [10, 65]
 
-        if (game_name == "train_env_3m"):
-            self.safe_space = [[0, 0], [3, 0]]
+        if (game_name == "train_env_7m_lite"):
+            self.safe_space = [[0, 0], [7, 0]]
             self.safe_radius = [1.0, 0.8]
-            self.target_distance = 3
+            self.target_distance = 7
             self.wall_rate = 0.8
-            self.cylinder_num = 130
+            self.cylinder_num = [30, 90]
         
         if (game_name == "train_env_7m"):
             self.safe_space = [[0, 0], [7, 0]]
             self.safe_radius = [1.0, 0.8]
             self.target_distance = 7
             self.wall_rate = 0.8
-            self.cylinder_num = 130
+            self.cylinder_num = [65, 150]
 
         if (game_name == "test_env_corridor" 
             or game_name == "test_env_cluster"):
@@ -105,13 +103,13 @@ class Game:
             self.safe_radius = [1.0]
             self.target_distance = 7
             self.wall_rate = 0
-            self.cylinder_num = 0
+            self.cylinder_num = [0, 0]
 
         self.world = World(self.safe_space, self.safe_radius, wall_rate=self.wall_rate, cylinder_num=self.cylinder_num)
 
         # subscriber
         self.mavrosStateSub = rospy.Subscriber(self.model_name + "/mavros/state", State, self._mavrosStateCB)
-        self.scanSub = rospy.Subscriber(self.model_name + "/scan_downsampled", LaserScan, self._scanCB)
+        self.scanSub = rospy.Subscriber(self.model_name + "/scan_filtered", LaserScan, self._scanCB)
         self.bodyVelocitySub = rospy.Subscriber(self.model_name + "/mavros/local_position/velocity_body", TwistStamped, self._bodyVelocityCB)
         
         # publisher
@@ -129,6 +127,33 @@ class Game:
         # Timer
         self.holdTimer = rospy.Timer(rospy.Duration(0.05), self._hold)
         self.visionTimer = rospy.Timer(rospy.Duration(0.02), self._vision)
+
+        # mean
+        self.state_mean = np.array([ 
+            3.06695960e+00,  3.03771147e+00,  3.05299927e+00,  3.05193262e+00,
+            2.99228520e+00,  2.97417861e+00,  2.99081994e+00,  2.99364638e+00,
+            2.96841941e+00,  2.97774674e+00,  3.04350663e+00,  3.04843229e+00,
+            3.08862462e+00,  3.10303832e+00,  3.11118260e+00,  3.13656770e+00,
+            3.16301488e+00,  3.16918399e+00,  3.18518689e+00,  3.15737707e+00,
+            3.09079041e+00,  3.01256886e+00,  2.99390981e+00,  2.98164454e+00,
+            2.94124718e+00,  2.92010787e+00,  2.96263851e+00,  3.02366703e+00,
+            2.99021790e+00,  3.00178016e+00,  2.96273755e+00,  2.95963609e+00,
+            3.02142335e+00,  3.08276899e+00,  3.08276899e+00,  4.26163804e-01,
+            -2.65218788e-02,  1.46537690e-02,  1.27745040e-03,  4.15130780e+00,
+            -1.76101266e-01,
+        ])
+
+        # var
+        self.state_var = np.array([
+            0.61180732, 0.66397289, 0.65259491, 0.65736408, 0.71918801, 0.76830985,
+            0.75053019, 0.75336443, 0.77642374, 0.77662414, 0.67677484, 0.66451916,
+            0.60657146, 0.59132277, 0.56403986, 0.53622081, 0.52991391, 0.50049739,
+            0.45092851, 0.4764633,  0.57130696, 0.69122664, 0.76037959, 0.78451642,
+            0.85805141, 0.86380994, 0.77546927, 0.66893839, 0.71354842, 0.71373221,
+            0.75325851, 0.7471921,  0.66068505, 0.56285966, 0.56285966, 0.00757519,
+            0.23640897, 0.01700726, 6.71247693, 5.07351972, 0.73958943,
+        ])
+
 
     def reset(self):
         """
@@ -180,7 +205,7 @@ class Game:
         while not self._is_hold():
             rospy.sleep(rospy.Duration(0.1))
 
-        rospy.loginfo("initialize uav position.")
+        print("Initialize uav position.")
 
         # initialize target point
         if (self.game_name == "test_env_corridor" 
@@ -193,11 +218,11 @@ class Game:
 
         self.world.set_target(self.target_x, self.target_y)
 
-        rospy.loginfo("initialize target position.")
+        print("Initialize target position.")
 
         # reset world
         self.world.reset()
-        rospy.loginfo("reset_world.")
+        print("Reset_world.")
 
         return self.cur_state()
 
@@ -218,11 +243,11 @@ class Game:
 
         self.world.set_target(self.target_x, self.target_y)
 
-        rospy.loginfo("initialize target position.")
+        print("Initialize target position.")
 
         # reset world
         self.world.reset()
-        rospy.loginfo("reset_world.")
+        print("Reset_world.")
 
         self.hold_able = False
 
@@ -273,7 +298,7 @@ class Game:
         resp = self.setModeClient.call(mode_cmd)
         
         if resp.mode_sent:
-            rospy.loginfo(self.model_name + ": offboard command sent.")
+            rospy.loginfo(self.model_name + ": offboard.")
         else:
             rospy.logerr(self.model_name + ": fail to send offboard command.")
             return False
@@ -283,7 +308,7 @@ class Game:
             self._send_position_cmd(cmd_x, cmd_y, cmd_yaw, height=self.height)
             self.hold_flag = False
 
-        rospy.loginfo(self.model_name + ": take-off successfully. hold now.")
+        rospy.loginfo(self.model_name + ": take-off.")
 
         # hold timer is able
         self.hold_able = True
@@ -311,7 +336,7 @@ class Game:
             if self.scan.ranges[i] < 2*self.crash_limit:
                 self.laser_crashed_reward = min(-25.0, self.laser_crashed_reward)
             if self.scan.ranges[i] < self.crash_limit:
-                self.laser_crashed_reward = -120.0
+                self.laser_crashed_reward = -100.0
                 self.laser_crashed_flag = True
                 self.crash_index = i
                 break
@@ -323,7 +348,6 @@ class Game:
         return:
             - True if action is valid
             - valid reward
-
         dead reckoning algorithm
         """
 
@@ -363,6 +387,7 @@ class Game:
         """
             game step
         """
+
         self.step_count += 1
 
         self.hold_able = False
@@ -393,8 +418,8 @@ class Game:
 
         # arrive reward
         self.arrive_reward = 0
-        if cur_distance < 0.5:
-            self.arrive_reward = 200
+        if cur_distance < 0.4:
+            self.arrive_reward = 100
             self.done = True
 
         # crash reward
@@ -404,19 +429,19 @@ class Game:
 
         # laser reward
         state = np.array(self.scan.ranges) / float(self.scan.range_max)
-        laser_reward = 0.4*(sum(state) - len(state))
+        laser_reward = -1.0*np.abs(np.sum((state - 1)**4))
 
-        # linear punish reward (abandan)
+        # linear punish reward (abandon)
         self.linear_punish_reward_x = 0
         # if self.body_v.twist.linear.x < 0.1:
         #     self.linear_punish_reward_x = -1
 
-        # angular punish reward
+        # angular punish reward (abandon)
         self.angular_punish_reward = 0
-        if abs(self.body_v.twist.angular.z) > 0.4:
-            self.angular_punish_reward = -1
-        elif abs(self.body_v.twist.angular.z) > 0.7:
-            self.angular_punish_reward = -2
+        # if abs(self.body_v.twist.angular.z) > 0.4:
+        #     self.angular_punish_reward = -1
+        # elif abs(self.body_v.twist.angular.z) > 0.7:
+        #     self.angular_punish_reward = -2
 
         # step punish reward
         self.step_punish_reward = -self.step_count * 0.04
@@ -425,22 +450,18 @@ class Game:
         self.acc_x_punish_reward = -4.0*abs(self.acc_x)
         self.acc_yaw_punish_reward = -2.0*abs(self.acc_yaw)
 
-        # right turing reward
+        # right turing reward (abandon)
         right_turning_reward = 0    # to break balance of turning
-        if self.body_v.twist.angular.z < 0:
-            right_turning_reward = 0.3*abs(self.body_v.twist.angular.z)
+        # if self.body_v.twist.angular.z < 0:
+            # right_turning_reward = 0.3*abs(self.body_v.twist.angular.z)
 
         total_reward = distance_reward \
                         + self.arrive_reward \
                         + crash_reward \
                         + laser_reward \
-                        + self.linear_punish_reward_x \
-                        + self.angular_punish_reward \
                         + self.step_punish_reward \
                         + self.acc_x_punish_reward \
-                        + self.acc_yaw_punish_reward \
-                        + right_turning_reward \
-
+                        + self.acc_yaw_punish_reward
 
         msg = Reward()
         msg.header.stamp = rospy.Time.now()
@@ -638,20 +659,22 @@ class Game:
             35 laser
             1  vx
             1  yaw_rate
+            1  ax
+            1  ayaw
             1  distance
             1  angle_diff
         """
         # ranges msg
-        state = [ (i - self.scan.range_max/2)/(self.scan.range_max/2) for i in self.scan.ranges]
+        state = list(self.scan.ranges)
 
         # pose msg
-        state.append(self.body_v.twist.linear.x/0.5)
+        state.append(self.body_v.twist.linear.x)
         state.append(self.body_v.twist.angular.z)
         state.append(self.acc_x)
         state.append(self.acc_yaw)
 
         # relative distance and normalize
-        distance_uav_target =  math.sqrt((self.target_x - self.pose.position.x)**2 + (self.target_y - self.pose.position.y)**2)/10
+        distance_uav_target =  math.sqrt((self.target_x - self.pose.position.x)**2 + (self.target_y - self.pose.position.y)**2)
         angle_uav_targer = atan2(self.target_y - self.pose.position.y, self.target_x - self.pose.position.x)
         (_, _, angle_uav) = euler_from_quaternion([
                                                 self.pose.orientation.x,
@@ -659,9 +682,11 @@ class Game:
                                                 self.pose.orientation.z,
                                                 self.pose.orientation.w
                                                 ])
-        angle_diff = angles.shortest_angular_distance(angle_uav, angle_uav_targer)/math.pi
+        angle_diff = angles.shortest_angular_distance(angle_uav, angle_uav_targer)
         state.append(distance_uav_target)
         state.append(angle_diff)
+
+        state = (np.array(state) - self.state_mean)/(self.state_var**0.5)
 
         return state
 
@@ -670,18 +695,6 @@ if __name__ == '__main__':
     rospy.init_node("test")
 
     game = Game("iris", "empty_3m")
-    game.start()
-    for i in range(100):    
-        for j in range(50):
-            o, r, done = game.step(0.1, 1, 0, 0)
-            print("reward: %f, done: %d" % (r, done))
-            # a, b = game.is_crashed()
-            # if a == True:
-            #     print("crash!")
-            # for k in state:
-            #     print(str(k), end=' ')
-            # print("\n")
-        game.reset()
-
-
-    rospy.spin()
+    
+    while True:
+        game.step(0.1, 0, 0, 0)

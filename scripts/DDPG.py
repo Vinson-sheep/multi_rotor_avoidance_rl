@@ -1,61 +1,82 @@
 #! /usr/bin/env python
 # coding :utf-8
-
-import math
-import random
+import os
 import numpy as np
-
+import copy
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from common.prioritized_replay_buffer import PrioritizedReplayBuffer
-import os
-import copy
+from common.buffer import PrioritizedReplayBuffer
+
+'''
+Deep Deterministic Policy Gradients (DDPG)
+Original paper:
+    CONTINUOUS CONTROL WITH DEEP REINFORCEMENT LEARNING https://arxiv.org/abs/1509.02971
+'''
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+# parameters
+state_dim = 41
+action_dim = 2
+tau = 0.01
+actor_lr = 3e-4
+critic_lr = 3e-4
+discount = 0.99
+buffer_size = 20000
+batch_size = 512
+hyper_parameters_eps = 0.2
+seed = 1
+
+url = os.path.dirname(os.path.realpath(__file__)) + '/data/'
+
+# Set seeds
+torch.manual_seed(seed)
+np.random.seed(seed)
+
+
 class Actor(nn.Module):
 
-    def __init__(self, state_dim, hidden_dim, action_dim):
+    def __init__(self, state_dim, action_dim, init_w=3e-3):
         super(Actor, self).__init__()
-        self.l1 = nn.Linear(state_dim, hidden_dim)
-        self.l2 = nn.Linear(hidden_dim, hidden_dim)
-        self.l3 = nn.Linear(hidden_dim, hidden_dim)
-        self.l4 = nn.Linear(hidden_dim, action_dim)
-        
+
+        self.l1 = nn.Linear(state_dim, 256)
+        self.l2 = nn.Linear(256, 256)
+        self.l3 = nn.Linear(256, action_dim)
+
+        self.l3.weight.data.uniform_(-init_w, init_w)
+        self.l3.bias.data.uniform_(-init_w, init_w)
+
     def forward(self, state):
-        a = torch.relu(self.l1(state))
-        a = torch.relu(self.l2(a))
-        a = torch.relu(self.l3(a))
-        a = torch.tanh(self.l4(a))
-        
+        a = F.relu(self.l1(state))
+        a = F.relu(self.l2(a))
+        a = torch.tanh(self.l3(a))
+
         return a
 
 
 class Critic(nn.Module):
 
-    def __init__(self, state_dim, hidden_dim, action_dim):
+    def __init__(self, state_dim, action_dim, init_w=3e-3):
         super(Critic, self).__init__()
 
-        self.l1 = nn.Linear(state_dim+action_dim, hidden_dim)
-        self.l2 = nn.Linear(hidden_dim, hidden_dim)
-        self.l3 = nn.Linear(hidden_dim, hidden_dim)
-        self.l4 = nn.Linear(hidden_dim, 1)
-
+        self.l1 = nn.Linear(state_dim + action_dim, 256)
+        self.l2 = nn.Linear(256, 256)
+        self.l3 = nn.Linear(256, 1)
+        self.l3.weight.data.uniform_(-init_w, init_w)
+        self.l3.bias.data.uniform_(-init_w, init_w)
 
     def forward(self, state, action):
-        sa = torch.cat([state, action], 1)
-
-        q = torch.relu(self.l1(sa))
-        q = torch.relu(self.l2(q))
-        q = torch.relu(self.l3(q))
-        q = self.l4(q)
+        sa = torch.cat((state, action), 1)
+        q = F.relu(self.l1(sa))
+        q = F.relu(self.l2(q))
+        q = self.l3(q)
 
         return q
 
 
-class Agent(object):
+class DDPG:
 
     def __init__(self, **kwargs):
 
@@ -63,139 +84,115 @@ class Agent(object):
         for key, value in kwargs.items():
             setattr(self, key, value)
 
-        # initialize net
-        self.actor = Actor(self.state_dim, self.hidden_dim, self.action_dim).to(device)
+        self.actor = Actor(state_dim, action_dim).to(device)
         self.actor_target = copy.deepcopy(self.actor)
-        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr = self.actor_lr)
+        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=actor_lr)
 
-        self.critic = Critic(self.state_dim, self.hidden_dim, self.action_dim).to(device)
+        self.critic = Critic(state_dim, action_dim).to(device)
         self.critic_target = copy.deepcopy(self.critic)
-        self.critic_optimizer = optim.Adam(self.critic.parameters(), lr = self.critic_lr)
+        self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=critic_lr)
 
-        self.buffer = PrioritizedReplayBuffer(self.buffer_size, self.batch_size)
+        self.buffer = PrioritizedReplayBuffer(buffer_size, batch_size, "DDPG")
 
-        self.load(os.path.dirname(os.path.realpath(__file__)) + '/data/' + self.policy + '/' + self.policy)
+        self.actor_loss = 0
+        self.critic_loss = 0
 
-        
+        self.num_training = 0
+
+        self.load()
+
+
     def act(self, state):
         state = torch.FloatTensor(state.reshape(1, -1)).to(device)
         return self.actor(state).cpu().data.numpy().flatten()
-    
 
-    def put(self, *transition): 
-        """
-        return Q_value of state, action
-        """
-
-        state, action, reward, next_state, done = transition
-
+    def put(self, *transition):
+        state, action, _, _, _ = transition
         state = torch.FloatTensor(state).to(device).unsqueeze(0)
         action = torch.FloatTensor(action).to(device).unsqueeze(0)
-
         Q = self.critic(state, action).detach()
-
-        self.buffer.add(transition, 100000.0)
+        self.buffer.add(transition, 1000.0)
 
         return Q.cpu().item()
 
-
-    def learn(self):
+    def update(self):
 
         if not self.buffer.sample_available():
             return
 
-        # Sample replay buffer 
+        (state, action, reward, next_state, done), indices = self.buffer.sample()
 
-        samples, indices = self.buffer.sample()
+        # state = (state - self.buffer.state_mean())/(self.buffer.state_std() + 1e-7)
+        # next_state = (next_state - self.buffer.state_mean())/(self.buffer.state_std() + 1e-6)
+        # reward = reward / (self.buffer.reward_std() + 1e-6)
 
-        state, action, reward, next_state, done = zip(*samples)
-
-        state = torch.tensor(state, dtype=torch.float).to(device)
-        action = torch.tensor(action, dtype=torch.float).to(device)
-        reward = torch.tensor(reward, dtype=torch.float).view(self.batch_size,-1).to(device)
-        next_state = torch.tensor(next_state, dtype=torch.float).to(device)
-        done = torch.tensor(done, dtype=torch.float).to(device).view(self.batch_size,-1).to(device)
-
-        # Compute the target Q value
-        target_Q = self.critic_target(next_state, self.actor_target(next_state))
-        target_Q = reward + ((1-done) * self.discount * target_Q).detach()
+        with torch.no_grad():
+            next_action = self.actor_target(next_state)
+            target_Q = self.critic_target(next_state, next_action)
+            target_Q = reward + (1 - done) * discount * target_Q
 
         # Get current Q estimates
         current_Q = self.critic(state, action)
 
         # Compute critic loss
         critic_loss = F.mse_loss(current_Q, target_Q)
+        self.critic_loss = critic_loss.item()
 
         # Optimize the critic
         self.critic_optimizer.zero_grad()
         critic_loss.backward()
-        print("critic loss: ", critic_loss.item())
+        nn.utils.clip_grad_norm_(self.critic.parameters(), 0.5)
         self.critic_optimizer.step()
 
         # update priorities
-        priorities = (((current_Q - target_Q).detach()**2)*self.alpha).cpu().squeeze(1).numpy() \
-                    + self.hyper_parameters_eps
+        priorities = (((current_Q - target_Q).detach()**2)).cpu().squeeze(1).numpy() + hyper_parameters_eps        
+
         self.buffer.update_priorities(indices, priorities)
 
+        # Compute actor losse
+        actor_loss = -self.critic(state, self.actor(state)).mean()
+        self.actor_loss = actor_loss.item()
 
         if (self.fix_actor_flag == False):
-            # Compute actor loss
-            actor_loss = -self.critic(state, self.actor(state)).mean()
-            print("actor loss: ", actor_loss.item())
-
-            # Optimize the actor 
+            # Optimize the actor
             self.actor_optimizer.zero_grad()
             actor_loss.backward()
+            nn.utils.clip_grad_norm_(self.actor.parameters(), 0.5)
             self.actor_optimizer.step()
-        
+
         # Update the frozen target models
         for param, target_param in zip(self.critic.parameters(), self.critic_target.parameters()):
-            target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
+            target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
 
         if (self.fix_actor_flag == False):
             for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
-                target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
-    
+                target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
 
-    def save(self, filename):
+        self.num_training += 1
 
-        torch.save(self.critic.state_dict(), filename + "_critic.pkl")
-        torch.save(self.critic_optimizer.state_dict(), filename + "_critic_optimizer.pth")
-        
-        torch.save(self.actor.state_dict(), filename + "_actor.pkl")
-        torch.save(self.actor_optimizer.state_dict(), filename + "_actor_optimizer.pth")
-
+    def save(self):
+        torch.save(self.critic.state_dict(), url + "DDPG_critic.pth")
+        torch.save(self.critic_optimizer.state_dict(), url + "DDPG_critic_optimizer.pth")
+        torch.save(self.actor.state_dict(), url + "DDPG_actor.pth")
+        torch.save(self.actor_optimizer.state_dict(), url + "DDPG_actor_optimizer.pth")
         self.buffer.save()
 
-        
-
-    def load(self, filename):
-
+    def load(self):
         if self.load_critic_flag == True:
-            self.critic.load_state_dict(torch.load(filename + "_critic.pkl", map_location=device))
+            print("Load critic model.")
+            self.critic.load_state_dict(torch.load(url + "DDPG_critic.pth", map_location=device))
             self.critic_target = copy.deepcopy(self.critic)
-            print("load critic model.")
 
         if self.load_actor_flag == True:
-            self.actor.load_state_dict(torch.load(filename + "_actor.pkl", map_location=device))
+            print("Load actor model.")
+            self.actor.load_state_dict(torch.load(url + "DDPG_actor.pth", map_location=device))
             self.actor_target = copy.deepcopy(self.actor)
-            print("load actor model.")
 
         if self.load_optim_flag == True:
-            self.critic_optimizer.load_state_dict(torch.load(filename + "_critic_optimizer.pth", map_location=device))
-            self.actor_optimizer.load_state_dict(torch.load(filename + "_actor_optimizer.pth", map_location=device))
-            print("load optimizer.")
+            print("Load optimizer.")
+            self.critic_optimizer.load_state_dict(torch.load(url + "DDPG_critic_optimizer.pth", map_location=device))
+            self.actor_optimizer.load_state_dict(torch.load(url + "DDPG_actor_optimizer.pth", map_location=device))
 
         if self.load_buffer_flag == True:
+            print("Load buffer data.")
             self.buffer.load()
-            print("load buffer data.")
-
-        
-
-        
-                                           
-  
-
-        
-                                           
-  

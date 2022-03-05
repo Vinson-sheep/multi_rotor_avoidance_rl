@@ -3,7 +3,6 @@
 
 import math
 
-from torch import set_flush_denormal
 import rospy
 import random
 from gazebo_msgs.srv import SpawnModel, SpawnModelRequest, DeleteModel,DeleteModelRequest
@@ -12,7 +11,7 @@ import os
 
 class World:
 
-    def __init__(self, safe_space, safe_radius, wall_rate = 1.0, cylinder_num = 100):
+    def __init__(self, safe_space, safe_radius, wall_rate, cylinder_num):
         """
             safe_space:
             safe_radius:
@@ -25,10 +24,11 @@ class World:
         self.safe_radius = safe_radius
         self.wall_rate = wall_rate
         self.cylinder_num = cylinder_num
+        self.limit = 10
 
         self.target_height = 1.0
         self.target_model_name = "target_ball"
-        self.expend_radius = 3
+        self.expend_radius = 4.0
 
         self.orientation_error = 0.2
         self.position_error = 1.0
@@ -148,14 +148,16 @@ class World:
         msg.initial_pose.orientation.z = 0
         msg.initial_pose.orientation.w = 1
 
-        for i in range(0, int(self.cylinder_num)):
+        cn = random.randint(self.cylinder_num[0], self.cylinder_num[1])
+
+        for i in range(0, cn):
             msg.model_name = "cylinder_" + str(i)
             self.cylinder_list.append(msg.model_name)
-            msg.initial_pose.position.x = random.uniform(-8, 8)
-            msg.initial_pose.position.y = random.uniform(-8, 8)
+            msg.initial_pose.position.x = random.uniform(-self.limit, self.limit)
+            msg.initial_pose.position.y = random.uniform(-self.limit, self.limit)
             while not self.check_safe(msg.initial_pose.position.x, msg.initial_pose.position.y):
-                msg.initial_pose.position.x = random.uniform(-8, 8)
-                msg.initial_pose.position.y = random.uniform(-8, 8)
+                msg.initial_pose.position.x = random.uniform(-self.limit, self.limit)
+                msg.initial_pose.position.y = random.uniform(-self.limit, self.limit)
             try:
                 self.spawnModelSdfClient.call(msg)
             except:

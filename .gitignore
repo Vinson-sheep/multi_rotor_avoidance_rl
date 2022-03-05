@@ -1,6 +1,7 @@
 *.pyc
 *.pkl
 *.pth
-*.json
-*.mat
 *.bin
+*.npy
+*.mat
+log

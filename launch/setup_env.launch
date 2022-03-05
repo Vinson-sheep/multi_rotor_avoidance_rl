@@ -65,7 +65,4 @@
         <remap from="scan_filtered" to="/iris/scan_filtered" />
     </node>
 
-
-    <node pkg="multi_rotor_avoidance_rl" type="laser_filter_downsample.py" name="laser_filter_downsameple" />
-
 </launch>

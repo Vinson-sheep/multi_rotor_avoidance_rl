@@ -18,10 +18,8 @@ restore_able = False
 
 policy = "TD3" # DDPG or TD3
 filter = "MAF" # NONE / FIR / MAF / FOLF
-game_name = "train_env_7m" # test_env_corridor / test_env_cluster / train_env_??
+game_name = "train_env_7m"
 recover_mode = False
-
-# FIR filter
 
 # Median Average Filter
 window_size = 8
@@ -203,9 +201,6 @@ if __name__ == '__main__':
 
                 rospy.sleep(rospy.Duration(step_time)-(rospy.Time.now() - begin_time))
 
-        # FIR filter
-        if (filter == "FIR"):
-            pass
 
         # Median Average Filter
         if (filter == "MAF"):

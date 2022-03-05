@@ -1,8 +1,12 @@
-# Multi-Rotor Obstacle Avoidance : Reinfocement Learning 3.0.0
+# Multi-Rotor Obstacle Avoidance : Reinfocement Learning 3.3.0
 
 ## Latest Update
 1. add train_env_target.world.
 2. randomize obstacles and walls.
+3. fix bug of models.
+4. modify testing_node.py with respect to training_node.py.
+5. close shadow.
+6. fix bug of learning frequency.
 
 ### **1. feature**
 

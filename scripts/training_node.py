@@ -1,119 +1,167 @@
 #! /usr/bin/env python
 #-*- coding: UTF-8 -*- 
 
+import rospy
 from common.game_training import Game
 from mavros_msgs.msg import PositionTarget
-import rospy
-import DDPG
-import TD3
+from multi_rotor_avoidance_rl.msg import State
 import numpy as np
-
-import visdom
-import scipy.io as sio
 import os
 import threading
-from multi_rotor_avoidance_rl.msg import State
+from tensorboardX import SummaryWriter
 
-# hyper parameter
-epsilon = 0.8
-epsilon_decay = 0.9999
+import DDPG
+import TD3
+import SAC
 
-load_able = False # True if you want to load previous data
-
-policy = "TD3" # DDPG or TD3
-game_name = "train_env_3m"  # empty_3m/ train_env_3m_lite/ train_env_3m/ train_env_7m
-
-# DDPG and TD3 params
-state_dim = 41
-action_dim = 2
-# hidden_dim = 500
-hidden_dim = 300
-
-discount = 0.99
-# actor_lr = 1e-4
-# critic_lr = 1e-2
-actor_lr = 3e-5
-critic_lr = 3e-4
-tau = 0.01
-buffer_size = 20000
-batch_size = 512
-alpha = 0.3
-hyper_parameters_eps = 0.2
-
-# td3 excluded
-policy_noise = 0.2
-noise_clip = 0.5
-policy_freq = 2
-
-# game params
-load_buffer_flag = False
+load_progress = True
+load_buffer_flag = True
 load_actor_flag = True
 load_critic_flag = True
-load_optim_flag = False
+load_log_alpha_flag = True
+load_optim_flag = True
 fix_actor_flag = False
 
-max_episode = 300
+policy = "SAC" # DDPG / TD3 / SAC
+game_name = "train_env_7m"
+
+epsilon = 0.8  # TD3
+epsilon_decay = 0.99995 # TD3
+
+state_dim = 41
+action_dim = 2
+
+max_episode = 500
 max_step_size = 300
 
 # variable
-e = []
-t = []
-r = []
-s = []
-q = []
-step_count_begin = 0
-episode_begin = 0
+episode_rewards = np.array([])
+episode_times = np.array([])
+step_rewards = np.array([])
+actor_losses = np.array([])
+critic_losses = np.array([])
+alpha_losses = np.array([])
+alphas = np.array([])
 agent = None
 
-viz = visdom.Visdom(env="line")
-
-# plot params
-opts1={
-    'showlegend': True,
-    'title': "reward-episode",
-    'xlabel': "episode",
-    'ylabel': "reward",
-}
-opts2={
-    'showlegend': True,
-    'title': "reward-step",
-    'xlabel': "step",
-    'ylabel': "reward",
-}
-opts3={
-    'showlegend': True,
-    'title': "q_value-step",
-    'xlabel': "step",
-    'ylabel': "Q value",
-}
-
-# file url
-data_url = os.path.dirname(os.path.realpath(__file__)) + '/data/' + policy + '/'
+url = os.path.dirname(os.path.realpath(__file__)) + '/data/'
+writer = SummaryWriter(url + '../../log')
 
 step_time = 0.1
 
-class myThread(threading.Thread):
+# initialize agent
+kwargs = {
+    'state_dim': state_dim,
+    'action_dim': action_dim,
+    'load_buffer_flag': load_buffer_flag,
+    'load_actor_flag': load_actor_flag,
+    'load_critic_flag': load_critic_flag,
+    'load_log_alpha_flag': load_log_alpha_flag,
+    'load_optim_flag': load_optim_flag,
+    'fix_actor_flag': fix_actor_flag,
+}
+
+if (policy == "TD3"):
+    agent = TD3.TD3(**kwargs)
+if (policy == "DDPG"):
+    agent = DDPG.DDPG(**kwargs)
+if (policy == "SAC"):
+    agent = SAC.SAC(**kwargs)
+
+class saveThread(threading.Thread):
+
     def __init__(self):
         threading.Thread.__init__(self)
 
     def run(self):
+
+        print("*Saving. Please don't close the window!")
+
+        begin_time = rospy.Time.now()
         # save data
-        sio.savemat(data_url + 'step.mat',{'data': s},True,'5', False, False,'row')
-        sio.savemat(data_url + 'reward.mat',{'data': r},True,'5', False, False,'row')
-        sio.savemat(data_url + 'q_value.mat',{'data': q},True,'5', False, False,'row')
-        sio.savemat(data_url + 'episode.mat',{'data': e},True,'5', False, False,'row')
-        sio.savemat(data_url + 'total_reward.mat',{'data': t},True,'5', False, False,'row')
-        sio.savemat(data_url + 'epsilon.mat',{'data': epsilon},True,'5', False, False,'row')
-
-        # plot
-        viz.line(t, e, win="gazebo1", name="line1", update=None, opts=opts1)
-        viz.line(r, s, win="gazebo2", name="line2:", update=None, opts=opts2)
-        viz.line(q, s, win="gazebo3", name="line3", update=None, opts=opts3)
-
+        np.save(url + "episode_rewards.npy", episode_rewards)
+        np.save(url + "episode_times.npy", episode_times)
+        np.save(url + "step_rewards.npy", step_rewards)
+        np.save(url + "actor_losses.npy", actor_losses)
+        np.save(url + "critic_losses.npy", critic_losses)
+        if policy == "SAC": np.save(url + "alpha_losses.npy", alpha_losses)
+        if policy == "SAC": np.save(url + "alphas.npy", alphas)
+        if policy == "TD3" or policy == "DDPG": np.save(url + "epsilon.npy", epsilon)
         # save model
-        agent.save(data_url + policy)
+        agent.save()
+        # print
+        save_time = (rospy.Time.now() - begin_time).to_sec()
+        writer.add_scalar("DEBUG/save_time", save_time, global_step=episode_rewards.size-1)  
+        
+        print("Saved. Time consumed = %f seconds." % (save_time))
 
-        rospy.loginfo("save temperory variables, plot, and save models.")
+
+class learnThread(threading.Thread):
+    
+    def __init__(self):
+        threading.Thread.__init__(self)
+
+    def run(self):
+
+        global actor_losses
+        global critic_losses
+        global alpha_losses
+        global alphas
+
+        # agent learn
+        begin_time = rospy.Time.now()             
+        agent.update()
+        learn_time = (rospy.Time.now() - begin_time).to_sec()
+        # log
+        actor_losses = np.append(actor_losses, agent.actor_loss)
+        writer.add_scalar("Loss/actor_loss", agent.actor_loss, global_step=actor_losses.size-1) 
+        critic_losses = np.append(critic_losses, agent.critic_loss)
+        writer.add_scalar("Loss/critic_loss", agent.critic_loss, global_step=critic_losses.size-1) 
+        if policy == "SAC":
+            alpha_losses = np.append(alpha_losses, agent.alpha_loss)
+            writer.add_scalar("Loss/alpha_loss", agent.alpha_loss, global_step=alpha_losses.size-1) 
+            alphas = np.append(alphas, agent.alpha.item())
+            writer.add_scalar("Loss/alpha", agent.alpha.item(), global_step=alphas.size-1) 
+
+        if step_rewards.size % 100 == 0:
+            print("Learned. Time consumed = %f seconds." % (learn_time))
+
+
+def loadData():
+
+    global episode_rewards
+    global episode_times
+    global step_rewards
+    global actor_losses
+    global critic_losses
+    global alpha_losses
+    global alphas
+    global epsilon
+    episode_rewards = np.load(url + "episode_rewards.npy")
+    episode_times = np.load(url + "episode_times.npy")
+    step_rewards = np.load(url + "step_rewards.npy")
+    actor_losses = np.load(url + "actor_losses.npy")
+    critic_losses = np.load(url + "critic_losses.npy")
+
+    for i in range(episode_rewards.size): writer.add_scalar("Performance/episode_reward", episode_rewards[i], global_step=i)  
+    for i in range(episode_times.size): writer.add_scalar("Performance/episode_time", episode_times[i], global_step=i)  
+    for i in range(step_rewards.size): writer.add_scalar("Performance/step_reward", step_rewards[i], global_step=i)  
+    for i in range(actor_losses.size): writer.add_scalar("Loss/actor_loss", actor_losses[i], global_step=i)  
+    for i in range(critic_losses.size): writer.add_scalar("Loss/critic_loss", critic_losses[i], global_step=i)  
+
+    if policy == "SAC": 
+        alpha_losses = np.load(url + "alpha_losses.npy")
+        alphas = np.load(url + "alphas.npy")
+
+        for i in range(alpha_losses.size):  writer.add_scalar("Loss/alpha_loss", alpha_losses[i], global_step=i) 
+        for i in range(alphas.size):  writer.add_scalar("Loss/alpha", alphas[i], global_step=i) 
+
+    if policy == "TD3": epsilon = np.load(url + "epsilon.npy")
+
+    print("1. Restore epsilon: %f" % (episode_rewards.size))
+    print("2. Restore step: %f" % (step_rewards.size))
+    
+
 
 if __name__ == '__main__':
 
@@ -130,92 +178,34 @@ if __name__ == '__main__':
 
     # initialize environment
     env = Game("iris", game_name)
-
-    # initialize agent
-    kwargs = {
-        'policy': policy,
-        'state_dim': state_dim,
-        'action_dim': action_dim,
-        'hidden_dim': hidden_dim,
-        'discount': discount,
-        'actor_lr': actor_lr,
-        'critic_lr': critic_lr,
-        'tau': tau,
-        'buffer_size': buffer_size,
-        'batch_size': batch_size,
-        'alpha': alpha,
-        'hyper_parameters_eps': hyper_parameters_eps,
-        'policy_noise': policy_noise,
-        'noise_clip': noise_clip,
-        'policy_freq': policy_freq,
-        'load_buffer_flag': load_buffer_flag,
-        'load_actor_flag': load_actor_flag,
-        'load_critic_flag': load_critic_flag,
-        'load_optim_flag': load_optim_flag,
-        'fix_actor_flag': fix_actor_flag
-    }
-
-    if (policy == "DDPG"):
-        agent = DDPG.Agent(**kwargs)
-    if (policy == "TD3"):
-        agent = TD3.Agent(**kwargs)
     
-    # create mat file
-    if not os.path.exists(data_url + 'episode.mat'):
-        os.system(r"touch {}".format(data_url + 'episode.mat'))
-    if not os.path.exists(data_url + 'total_reward.mat'):
-        os.system(r"touch {}".format(data_url + 'total_reward.mat'))
-    if not os.path.exists(data_url + 'reward.mat'):
-        os.system(r"touch {}".format(data_url + 'reward.mat'))
-    if not os.path.exists(data_url + 'step.mat'):
-        os.system(r"touch {}".format(data_url + 'step.mat'))
-    if not os.path.exists(data_url + 'q_value.mat'):
-        os.system(r"touch {}".format(data_url + 'q_value.mat'))
-    if not os.path.exists(data_url + 'epsilon.mat'):
-        os.system(r"touch {}".format(data_url + 'epsilon.mat'))
-
     # load data if true
-    if load_able == True:
+    if load_progress: loadData()
 
-        e = list(sio.loadmat(data_url + 'episode.mat')['data'][0])
-        t = list(sio.loadmat(data_url + 'total_reward.mat')['data'][0])
-        r = list(sio.loadmat(data_url + 'reward.mat')['data'][0])
-        s = list(sio.loadmat(data_url + 'step.mat')['data'][0])
-        q = list(sio.loadmat(data_url + 'q_value.mat')['data'][0])
-        epsilon = list(sio.loadmat(data_url + 'epsilon.mat')['data'][0])[0]
-
-        print("restore epsilon:", epsilon)
-
-        if len(r) > 0:
-            step_count_begin = s[-1]
-            print("restore step count:", step_count_begin)
-        if len(e) > 0:
-            episode_begin = e[-1] + 1
-            print("restore episode:", episode_begin)
+    episode_begin = episode_rewards.size
 
     # start to train
     for episode in range(episode_begin, max_episode):
 
+        print("=====================================")
+        print("=========== Episode %d ===============" % (episode))
+        print("=====================================")
+
+
         if episode == episode_begin:
             s0 = env.start()
-            print("start!")
+            print("Game start!")
         else:
             s0 = env.reset()
-            print("reset.")
 
         episode_reward = 0
+        episode_begin_time = rospy.Time.now()
 
-        for step in range(max_step_size):
+        for step in range(0, max_step_size):
 
-            step_count_begin += 1
-            s.append(step_count_begin)
+            step_begin_time = rospy.Time.now()
 
-            # DEBUG
-            msg = State()
-            msg.header.stamp = rospy.Time.now()
-            msg.data = s0
-            statePub.publish(msg)
-
+            # choose action
             a0 = agent.act(s0)
 
             # DEBUG
@@ -224,39 +214,55 @@ if __name__ == '__main__':
             pt.yaw_rate = a0[1]
             rawCmdPub.publish(pt)
 
-            # E-greedy
-            if epsilon > np.random.random():
-                a0[0] = np.clip(a0[0] + np.random.choice([-1, 1])* np.random.random()*0.8, -1.0, 1.0)
-                a0[1] = np.clip(a0[1] + np.random.choice([-1, 1])* np.random.random()*0.5, -1.0, 1.0)
+            if (policy == "TD3" or policy == "DDPG"):
+                if epsilon > np.random.random():
+                    a0 = (a0 + np.random.normal(0, 0.3, size=a0.size)).clip(-1.0, 1.0)
 
             # DEBUG
             pt.velocity.x = (a0[0]+1)/4.0
             pt.yaw_rate = a0[1]
-            modCmdPub.publish(pt)
+            modCmdPub.publish(pt)    
 
-            s1, r1, done = env.step(step_time, pt.velocity.x, 0, pt.yaw_rate)
-            
-            q_value = agent.put(s0, a0, r1, s1, done)
+            # agent learn
+            learnThread().start()
 
-            epsilon = max(epsilon_decay*epsilon, 0.10)
+            # step
+            s1, r1, done = env.step(step_time, pt.velocity.x, 0, pt.yaw_rate)        
 
-            r.append(r1)
-            q.append(q_value)
+            # DEBUG
+            msg = State()
+            msg.header.stamp = rospy.Time.now()
+            msg.cur_state = s0
+            msg.next_state = s1
+            statePub.publish(msg)
 
+            # save transition
+            agent.put(s0, a0, r1, s1, done)
+
+            # plot and save
+            step_rewards = np.append(step_rewards, r1)
+            writer.add_scalar("Performance/step_reward", r1, global_step=step_rewards.size-1)  
+            writer.add_scalar("DEBUG/step_time", (rospy.Time.now() - step_begin_time).to_sec(), global_step=step_rewards.size-1)  
+
+            # other
+            epsilon = max(epsilon_decay*epsilon, 0.20)
             episode_reward += r1
             s0 = s1
 
-            agent.learn()
+            if done: break
+            if rospy.is_shutdown(): break
 
-            if done:
-                break
+        episode_time = (rospy.Time.now() - episode_begin_time).to_sec()
+        episode_rewards = np.append(episode_rewards, episode_reward)
+        episode_times = np.append(episode_times, episode_time)
+        writer.add_scalar("Performance/episode_reward", episode_reward, global_step=episode_rewards.size-1)  
+        writer.add_scalar("Performance/episode_time", episode_time, global_step=episode_times.size-1)  
 
-        print("eps = ", epsilon)
-        print(episode, ': ', episode_reward)
+        if policy == "DDPG" or policy == "TD3":
+            print("epsilon = %f" % (epsilon))
 
-        e.append(episode)
-        t.append(episode_reward)
+        if rospy.is_shutdown(): break
 
-        myThread().start()
+        saveThread().start()
 
     rospy.spin()
