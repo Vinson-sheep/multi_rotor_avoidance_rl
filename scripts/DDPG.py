@@ -145,9 +145,10 @@ class DDPG:
         self.critic_optimizer.step()
 
         # update priorities
-        priorities = (((current_Q - target_Q).detach()**2)).cpu().squeeze(1).numpy() + hyper_parameters_eps        
+        if self.use_priority:
+            priorities = (((current_Q - target_Q).detach()**2)).cpu().squeeze(1).numpy() + hyper_parameters_eps        
 
-        self.buffer.update_priorities(indices, priorities)
+            self.buffer.update_priorities(indices, priorities)
 
         # Compute actor losse
         actor_loss = -self.critic(state, self.actor(state)).mean()

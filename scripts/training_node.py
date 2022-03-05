@@ -22,6 +22,8 @@ load_log_alpha_flag = True
 load_optim_flag = True
 fix_actor_flag = False
 
+use_priority = True
+
 policy = "SAC" # DDPG / TD3 / SAC
 game_name = "train_env_7m"
 
@@ -33,6 +35,8 @@ action_dim = 2
 
 max_episode = 500
 max_step_size = 300
+
+K = 1
 
 # variable
 episode_rewards = np.array([])
@@ -47,7 +51,7 @@ agent = None
 url = os.path.dirname(os.path.realpath(__file__)) + '/data/'
 writer = SummaryWriter(url + '../../log')
 
-step_time = 0.1
+step_time = 0.2
 
 # initialize agent
 kwargs = {
@@ -59,6 +63,7 @@ kwargs = {
     'load_log_alpha_flag': load_log_alpha_flag,
     'load_optim_flag': load_optim_flag,
     'fix_actor_flag': fix_actor_flag,
+    'use_priority': use_priority
 }
 
 if (policy == "TD3"):
@@ -109,8 +114,8 @@ class learnThread(threading.Thread):
         global alphas
 
         # agent learn
-        begin_time = rospy.Time.now()             
-        agent.update()
+        begin_time = rospy.Time.now()
+        for i in range(K): agent.update()
         learn_time = (rospy.Time.now() - begin_time).to_sec()
         # log
         actor_losses = np.append(actor_losses, agent.actor_loss)

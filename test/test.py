@@ -2,7 +2,12 @@
 #-*- coding: UTF- -*-
 
 import numpy as np
+import os
+import matplotlib.pyplot as plt
 
-a = np.array([1])
-a = np.append(a, 1)
-print(a.size)
+url = os.path.dirname(os.path.realpath(__file__))
+y = np.load(url + "/step_rewards.npy")
+x = np.array(range(y.size))
+
+plt.plot(x, y)
+plt.show()

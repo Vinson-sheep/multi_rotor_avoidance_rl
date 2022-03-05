@@ -217,11 +217,12 @@ class SAC:
         self.Q_net_optimizer.step()
 
         # update priorities
-        priorities = (((current_Q1 - target_Q).detach()**2)).cpu().squeeze(1).numpy() \
-                    + (((current_Q2 - target_Q).detach()**2)).cpu().squeeze(1).numpy() \
-                    + hyper_parameters_eps        
+        if self.use_priority:
+            priorities = (((current_Q1 - target_Q).detach()**2)).cpu().squeeze(1).numpy() \
+                        + (((current_Q2 - target_Q).detach()**2)).cpu().squeeze(1).numpy() \
+                        + hyper_parameters_eps        
 
-        self.buffer.update_priorities(indices, priorities)        
+            self.buffer.update_priorities(indices, priorities)        
 
         # actor
         if self.num_training % actor_update_frequency == 0 and self.fix_actor_flag == False:

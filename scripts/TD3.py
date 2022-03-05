@@ -180,11 +180,12 @@ class TD3:
         self.critic_optimizer.step()
 
         # update priorities
-        priorities = (((current_Q1 - target_Q).detach()**2)).cpu().squeeze(1).numpy() \
-                    + (((current_Q2 - target_Q).detach()**2)).cpu().squeeze(1).numpy() \
-                    + hyper_parameters_eps        
+        if self.use_priority:
+            priorities = (((current_Q1 - target_Q).detach()**2)).cpu().squeeze(1).numpy() \
+                        + (((current_Q2 - target_Q).detach()**2)).cpu().squeeze(1).numpy() \
+                        + hyper_parameters_eps        
 
-        self.buffer.update_priorities(indices, priorities)
+            self.buffer.update_priorities(indices, priorities)
 
         # Delayed policy updates
         if self.num_training % policy_freq == 0:
