@@ -24,7 +24,7 @@ fix_actor_flag = False
 
 use_priority = True
 
-policy = "SAC" # DDPG / TD3 / SAC
+policy = "TD3" # DDPG / TD3 / SAC
 game_name = "train_env_7m"
 
 epsilon = 0.8  # TD3
@@ -161,7 +161,7 @@ def loadData():
         for i in range(alpha_losses.size):  writer.add_scalar("Loss/alpha_loss", alpha_losses[i], global_step=i) 
         for i in range(alphas.size):  writer.add_scalar("Loss/alpha", alphas[i], global_step=i) 
 
-    if policy == "TD3": epsilon = np.load(url + "epsilon.npy")
+    if policy == "TD3" or policy == "DDPG": epsilon = np.load(url + "epsilon.npy")
 
     print("1. Restore epsilon: %f" % (episode_rewards.size))
     print("2. Restore step: %f" % (step_rewards.size))
