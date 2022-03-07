@@ -150,11 +150,11 @@ class DDPG:
 
             self.buffer.update_priorities(indices, priorities)
 
-        # Compute actor losse
-        actor_loss = -self.critic(state, self.actor(state)).mean()
-        self.actor_loss = actor_loss.item()
-
         if (self.fix_actor_flag == False):
+            # Compute actor loss
+            actor_loss = -self.critic(state, self.actor(state)).mean()
+            self.actor_loss = actor_loss.item()
+
             # Optimize the actor
             self.actor_optimizer.zero_grad()
             actor_loss.backward()
