@@ -163,8 +163,8 @@ def loadData():
 
     if policy == "TD3" or policy == "DDPG": epsilon = np.load(url + "epsilon.npy")
 
-    print("1. Restore epsilon: %f" % (episode_rewards.size))
-    print("2. Restore step: %f" % (step_rewards.size))
+    print("1. Restore episode: %d" % (episode_rewards.size))
+    print("2. Restore step: %d" % (step_rewards.size))
     
 
 
