@@ -28,7 +28,7 @@ actor_lr = 3e-4
 Q_net_lr = 3e-4
 alpha_lr = 3e-4
 discount = 0.99
-init_temperature = 0.1
+init_temperature = 0.2
 buffer_size = 20000
 batch_size = 512
 actor_update_frequency = 1
@@ -192,11 +192,11 @@ class SAC:
 
         current_Q1, current_Q2 = self.Q_net(state, action)
         new_action, log_prob, _, _, _ = self.actor.evaluate(state)
-        new_next_action, _, _, _, _ = self.actor.evaluate(next_state)
+        new_next_action, next_log_prob, _, _, _ = self.actor.evaluate(next_state)
 
         if self.num_training % actor_update_frequency == 0 and self.fix_actor_flag == False:
 
-            alpha_loss = -(self.log_alpha * (log_prob + self.target_entropy).detach()).mean()
+            alpha_loss = -(self.alpha * (log_prob + self.target_entropy).detach()).mean()
             self.alpha_loss = alpha_loss.item()
 
             self.log_alpha_optimizer.zero_grad()
@@ -207,7 +207,8 @@ class SAC:
         # Q_net
 
         target_Q1, target_Q2 = self.Q_net_target(next_state, new_next_action)
-        target_Q = reward + (1 - done) * discount * torch.min(target_Q1, target_Q2)
+        target_V = torch.min(target_Q1, target_Q2) - self.alpha.detach()*next_log_prob
+        target_Q = reward + (1 - done) * discount * target_V
         Q_net_loss = F.mse_loss(current_Q1, target_Q) + F.mse_loss(current_Q2, target_Q)
         self.critic_loss = Q_net_loss.item()
 
