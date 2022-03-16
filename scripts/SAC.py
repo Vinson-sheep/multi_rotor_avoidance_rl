@@ -26,14 +26,14 @@ action_dim = 2
 tau = 0.01
 actor_lr = 3e-4
 Q_net_lr = 3e-4
-alpha_lr = 3e-4
+alpha_lr = 3e-5
 discount = 0.99
 init_temperature = 0.2
 buffer_size = 20000
 batch_size = 512
 actor_update_frequency = 1
 hyper_parameters_eps = 0.2
-seed = 1
+seed = 2
 
 url = os.path.dirname(os.path.realpath(__file__)) + '/data/'
 

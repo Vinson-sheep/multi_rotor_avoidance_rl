@@ -593,6 +593,14 @@ class Game:
                 (self.pose.position.y - y)**2 < limit and \
                     (self.pose.position.z - z)**2 < limit
 
+    def is_arrived(self):
+        cur_pos_x_uav = self.pose.position.x
+        cur_pos_y_uav = self.pose.position.y
+        cur_distance = math.sqrt((self.target_x - cur_pos_x_uav)**2 + (self.target_y - cur_pos_y_uav)**2)
+        if cur_distance < 0.5:
+            return True
+        return False
+
     def _vision(self, event):
         """
             get iris state, and send vision.

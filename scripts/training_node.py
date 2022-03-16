@@ -2,7 +2,7 @@
 #-*- coding: UTF-8 -*- 
 
 import rospy
-from common.game_training import Game
+from common.game import Game
 from mavros_msgs.msg import PositionTarget
 from multi_rotor_avoidance_rl.msg import State
 import numpy as np
@@ -14,17 +14,17 @@ import DDPG
 import TD3
 import SAC
 
-load_progress = True
+load_progress = False
 load_buffer_flag = True
 load_actor_flag = True
 load_critic_flag = True
 load_log_alpha_flag = True
 load_optim_flag = True
-fix_actor_flag = False
 
+fix_actor_flag = False
 use_priority = True
 
-policy = "TD3" # DDPG / TD3 / SAC
+policy = "SAC" # DDPG / TD3 / SAC
 game_name = "train_env_7m"
 
 epsilon = 0.8  # TD3
@@ -35,6 +35,7 @@ action_dim = 2
 
 max_episode = 500
 max_step_size = 300
+init_episode = 50
 
 K = 1
 
@@ -206,7 +207,7 @@ if __name__ == '__main__':
         episode_reward = 0
         episode_begin_time = rospy.Time.now()
 
-        for step in range(0, max_step_size):
+        for step in range(max_step_size):
 
             step_begin_time = rospy.Time.now()
 
@@ -229,6 +230,9 @@ if __name__ == '__main__':
             modCmdPub.publish(pt)    
 
             # agent learn
+            if episode < init_episode: agent.fix_actor_flag = True
+            else: agent.fix_actor_flag = False
+            
             learnThread().start()
 
             # step

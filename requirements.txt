@@ -1,7 +1,8 @@
+# pip install --upgrade pip
 torch==1.4.0
 torchvision
 tensorflow==1.14.0
-tensorboard==2.0.0
+tensorboardX==2.0.0
 pykalman
 scipy
 pyyaml

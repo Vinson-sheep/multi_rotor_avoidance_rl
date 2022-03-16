@@ -27,7 +27,7 @@ discount = 0.99
 buffer_size = 20000
 batch_size = 512
 hyper_parameters_eps = 0.2
-seed = 1
+seed = 2
 
 url = os.path.dirname(os.path.realpath(__file__)) + '/data/'
 

@@ -30,7 +30,7 @@ policy_freq = 2
 policy_noise = 0.2
 noise_clip = 0.5
 hyper_parameters_eps = 0.2
-seed = 1
+seed = 2
 
 url = os.path.dirname(os.path.realpath(__file__)) + '/data/'
 
