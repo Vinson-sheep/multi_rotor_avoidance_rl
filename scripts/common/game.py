@@ -62,12 +62,6 @@ class Game:
         self.kf_yaw = KalmanFilter(initial_state_mean=0, n_dim_obs=1)
 
         # initialize world
-        if (game_name == "empty_3m"):
-            self.safe_space = [[0, 0], [3.5, 0]]
-            self.safe_radius = [1.0, 0.8]
-            self.target_distance = 3.5
-            self.wall_rate = 0
-            self.cylinder_num = [0, 0]
 
         if (game_name == "empty_7m"):
             self.safe_space = [[0, 0], [7, 0]]
@@ -75,20 +69,6 @@ class Game:
             self.target_distance = 7
             self.wall_rate = 0
             self.cylinder_num = [0, 0]
-
-        if (game_name == "train_env_3m_lite"):
-            self.safe_space = [[0, 0], [3.5, 0]]
-            self.safe_radius = [1.0, 0.8]
-            self.target_distance = 3.5
-            self.wall_rate = 0.5
-            self.cylinder_num = [10, 65]
-
-        if (game_name == "train_env_7m_lite"):
-            self.safe_space = [[0, 0], [7, 0]]
-            self.safe_radius = [1.0, 0.8]
-            self.target_distance = 7
-            self.wall_rate = 0.8
-            self.cylinder_num = [30, 90]
         
         if (game_name == "train_env_7m"):
             self.safe_space = [[0, 0], [7, 0]]
@@ -97,13 +77,34 @@ class Game:
             self.wall_rate = 0.8
             self.cylinder_num = [65, 150]
 
-        if (game_name == "test_env_corridor" 
-            or game_name == "test_env_cluster"):
-            self.safe_space = [[0, 0]]
-            self.safe_radius = [1.0]
+        if (game_name == "test_env_7m_1"):
+            self.safe_space = [[0, 0], [3.5, 0]]
+            self.safe_radius = [1.0, 0.8]
             self.target_distance = 7
-            self.wall_rate = 0
-            self.cylinder_num = [0, 0]
+            self.wall_rate = 0.5
+            self.cylinder_num = [5, 50]
+
+        if (game_name == "test_env_7m_2"):
+            self.safe_space = [[0, 0], [7, 0]]
+            self.safe_radius = [1.0, 0.8]
+            self.target_distance = 7
+            self.wall_rate = 0.8
+            self.cylinder_num = [50, 100]
+
+        if (game_name == "test_env_7m_3"):
+            self.safe_space = [[0, 0], [7, 0]]
+            self.safe_radius = [1.0, 0.8]
+            self.target_distance = 7
+            self.wall_rate = 0.8
+            self.cylinder_num = [100, 150]
+
+        if (game_name == "test_env_7m_4"):
+            self.safe_space = [[0, 0], [7, 0]]
+            self.safe_radius = [1.0, 0.8]
+            self.target_distance = 7
+            self.wall_rate = 0.8
+            self.cylinder_num = [150, 200]
+
 
         self.world = World(self.safe_space, self.safe_radius, wall_rate=self.wall_rate, cylinder_num=self.cylinder_num)
 
