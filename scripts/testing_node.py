@@ -9,18 +9,18 @@ import numpy as np
 import os
 import threading
 import pickle
-from tensorboardX import SummaryWriter
+# from tensorboardX import SummaryWriter
 
 import DDPG
 import TD3
 import SAC
 
 
-load_progress = True
+load_progress = False
 
 policy = "SAC" # DDPG or TD3 or SAC
-filter = "FOLF" # NONE / MAF / FOLF
-game_name = "train_env_7m"
+filter = "NONE" # NONE / MAF / FOLF
+game_name = "test_env_7m_1" # test_env_7m_<number>
 
 # Median Average Filter
 window_size = 4
@@ -30,7 +30,7 @@ action_discount = 0.5
 state_dim = 41
 action_dim = 2
 
-max_episode = 100
+max_episode = 500
 max_step_size = 300
 
 # variable

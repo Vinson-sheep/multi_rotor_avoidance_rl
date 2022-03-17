@@ -14,7 +14,7 @@ import DDPG
 import TD3
 import SAC
 
-load_progress = False
+load_progress = True
 load_buffer_flag = True
 load_actor_flag = True
 load_critic_flag = True
