@@ -1,12 +1,16 @@
-# Multi-Rotor Obstacle Avoidance : Reinfocement Learning 3.3.0
+# Multi-Rotor Obstacle Avoidance : Reinfocement Learning 4.0.0
+
+## An DRL-based path planning framework for real quadrotor
+
+![](./docs/falco_mask.jpg) 
+![](./docs/net_flow_2.jpg)
+
+
+[video](https://space.bilibili.com/35680677?spm_id_from=333.1007.0.0)
 
 ## Latest Update
-1. add train_env_target.world.
-2. randomize obstacles and walls.
-3. fix bug of models.
-4. modify testing_node.py with respect to training_node.py.
-5. close shadow.
-6. fix bug of learning frequency.
+1. complete paper
+2. improve documentation
 
 ### **1. feature**
 
@@ -17,16 +21,9 @@
 | pytorch   | 1.4.0   |
 
 
-
 ### **2. installation**
-**Dependence**
 
-```
-sudo apt install -y ninja-build exiftool python-argparse python-empy python-toml python-numpy python-yaml python-dev python-pip ninja-build protobuf-compiler libeigen3-dev genromfs xmlstarlet libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
 
-pip2 install pandas jinja2 pyserial cerberus pyulog==0.7.0 numpy toml pyquaternion
-pip3 install packaging numpy empy toml pyyaml jinja2
-```
 **ROS melodic**
 
 refer to [here](http://wiki.ros.org/Installation/Ubuntu)
@@ -82,37 +79,18 @@ create env
 
 ```
 conda create -n my_env python=2.7
+conda activate my_env
+```
+
+update pip
+```
+pip install --upgrade pip
 ```
 
 install dependence
 
 ```
-conda activate my_env
-conda install pip2
-pip2 install pykalman rospkg
-conda install numpy matplotlib scipy 
-```
-
-install pytorch
-
-```
-conda install pytorch torchvision cuda80
-```
-
-install visdom
-
-```
-pip2 install visdom
-# try
-python -m visdom.server
-```
-
-If it shows `Downloading scripts, this may take a little while` for long time, then
-
-```
-git clone https://github.com/casuallyName/document-sharing.git
-rm -rf ~/anaconda3/envs/my_env/lib/python2.7/site-packages/visdom/static
-mv document-sharing/static ~/anaconda3/envs/rdpg_env/lib/python2.7/site-packages/visdom
+pip install requirements.txt
 ```
 
 **Building pkg**
@@ -134,7 +112,7 @@ cd ..
 catkin_make
 ```
 
-copy models `falco`.`imu_gazebo`/`UST_10LX` to `~/PX4_Firmware/Tools/sitl_gazebo/models`.
+copy models `falco`/`imu_gazebo`/`UST_10LX` to `~/PX4_Firmware/Tools/sitl_gazebo/models`.
 
 **Run Samples**
 
