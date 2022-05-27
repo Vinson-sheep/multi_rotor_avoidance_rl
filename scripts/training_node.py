@@ -9,33 +9,30 @@ import numpy as np
 import os
 import threading
 from tensorboardX import SummaryWriter
+import torch
 
-import DDPG
-import TD3
-import SAC
+import SAC_LSTM
+import SAC_GRU
 
-load_progress = True
-load_buffer_flag = True
-load_actor_flag = True
-load_critic_flag = True
-load_log_alpha_flag = True
-load_optim_flag = True
+load_progress = False
+load_buffer_flag = False
+load_actor_flag = False
+load_critic_flag = False
+load_log_alpha_flag = False
+load_optim_flag = False
 
 fix_actor_flag = False
-use_priority = True
 
-policy = "SAC" # DDPG / TD3 / SAC
-game_name = "train_env_7m"
-
-epsilon = 0.8  # TD3
-epsilon_decay = 0.99995 # TD3
+policy = "SAC_LSTM" # SAC_LSTM / SAC_GRU
+game_name = "TRAIN" # EMPTY / TRAIN / TEST[1-4]
 
 state_dim = 41
 action_dim = 2
+hidden_dim = 128
 
 max_episode = 500
 max_step_size = 300
-init_episode = 50
+init_episode = 0
 
 K = 1
 
@@ -56,23 +53,18 @@ step_time = 0.2
 
 # initialize agent
 kwargs = {
-    'state_dim': state_dim,
-    'action_dim': action_dim,
     'load_buffer_flag': load_buffer_flag,
     'load_actor_flag': load_actor_flag,
     'load_critic_flag': load_critic_flag,
     'load_log_alpha_flag': load_log_alpha_flag,
     'load_optim_flag': load_optim_flag,
     'fix_actor_flag': fix_actor_flag,
-    'use_priority': use_priority
 }
 
-if (policy == "TD3"):
-    agent = TD3.TD3(**kwargs)
-if (policy == "DDPG"):
-    agent = DDPG.DDPG(**kwargs)
-if (policy == "SAC"):
-    agent = SAC.SAC(**kwargs)
+if (policy == "SAC_LSTM"):
+    agent = SAC_LSTM.SAC_LSTM(**kwargs)
+if (policy == "SAC_GRU"):
+    agent = SAC_GRU.SAC_GRU(**kwargs)
 
 class saveThread(threading.Thread):
 
@@ -90,9 +82,8 @@ class saveThread(threading.Thread):
         np.save(url + "step_rewards.npy", step_rewards)
         np.save(url + "actor_losses.npy", actor_losses)
         np.save(url + "critic_losses.npy", critic_losses)
-        if policy == "SAC": np.save(url + "alpha_losses.npy", alpha_losses)
-        if policy == "SAC": np.save(url + "alphas.npy", alphas)
-        if policy == "TD3" or policy == "DDPG": np.save(url + "epsilon.npy", epsilon)
+        np.save(url + "alpha_losses.npy", alpha_losses)
+        np.save(url + "alphas.npy", alphas)
         # save model
         agent.save()
         # print
@@ -123,11 +114,10 @@ class learnThread(threading.Thread):
         writer.add_scalar("Loss/actor_loss", agent.actor_loss, global_step=actor_losses.size-1) 
         critic_losses = np.append(critic_losses, agent.critic_loss)
         writer.add_scalar("Loss/critic_loss", agent.critic_loss, global_step=critic_losses.size-1) 
-        if policy == "SAC":
-            alpha_losses = np.append(alpha_losses, agent.alpha_loss)
-            writer.add_scalar("Loss/alpha_loss", agent.alpha_loss, global_step=alpha_losses.size-1) 
-            alphas = np.append(alphas, agent.alpha.item())
-            writer.add_scalar("Loss/alpha", agent.alpha.item(), global_step=alphas.size-1) 
+        alpha_losses = np.append(alpha_losses, agent.alpha_loss)
+        writer.add_scalar("Loss/alpha_loss", agent.alpha_loss, global_step=alpha_losses.size-1) 
+        alphas = np.append(alphas, agent.alpha.item())
+        writer.add_scalar("Loss/alpha", agent.alpha.item(), global_step=alphas.size-1) 
 
         if step_rewards.size % 100 == 0:
             print("Learned. Time consumed = %f seconds." % (learn_time))
@@ -142,7 +132,6 @@ def loadData():
     global critic_losses
     global alpha_losses
     global alphas
-    global epsilon
     episode_rewards = np.load(url + "episode_rewards.npy")
     episode_times = np.load(url + "episode_times.npy")
     step_rewards = np.load(url + "step_rewards.npy")
@@ -155,16 +144,12 @@ def loadData():
     for i in range(actor_losses.size): writer.add_scalar("Loss/actor_loss", actor_losses[i], global_step=i)  
     for i in range(critic_losses.size): writer.add_scalar("Loss/critic_loss", critic_losses[i], global_step=i)  
 
-    if policy == "SAC": 
-        alpha_losses = np.load(url + "alpha_losses.npy")
-        alphas = np.load(url + "alphas.npy")
+    alpha_losses = np.load(url + "alpha_losses.npy")
+    alphas = np.load(url + "alphas.npy")
 
-        for i in range(alpha_losses.size):  writer.add_scalar("Loss/alpha_loss", alpha_losses[i], global_step=i) 
-        for i in range(alphas.size):  writer.add_scalar("Loss/alpha", alphas[i], global_step=i) 
+    for i in range(alpha_losses.size):  writer.add_scalar("Loss/alpha_loss", alpha_losses[i], global_step=i) 
+    for i in range(alphas.size):  writer.add_scalar("Loss/alpha", alphas[i], global_step=i) 
 
-    if policy == "TD3" or policy == "DDPG": epsilon = np.load(url + "epsilon.npy")
-
-    print("1. Restore episode: %d" % (episode_rewards.size))
     print("2. Restore step: %d" % (step_rewards.size))
     
 
@@ -199,34 +184,50 @@ if __name__ == '__main__':
 
 
         if episode == episode_begin:
-            s0 = env.start()
+            state = env.start()
             print("Game start!")
         else:
-            s0 = env.reset()
+            state = env.reset()
 
-        episode_reward = 0
+        last_action = 2*np.random.rand(action_dim) - 1
+        episode_state = []
+        episode_action = []
+        episode_last_action = []
+        episode_reward = []
+        episode_next_state = []
+        episode_done = []        
+        
+        if (policy == "SAC_LSTM"):
+            hidden_out = (torch.zeros([1, 1, hidden_dim], dtype=torch.float).cuda(), \
+                torch.zeros([1, 1, hidden_dim], dtype=torch.float).cuda())  # initialize hidden state for lstm, (hidden, cell), each is (batch, layer, dim) 
+        if (policy == "SAC_GRU"):
+            hidden_out = torch.zeros([1, 1, hidden_dim], dtype=torch.float).cuda()
+
+        total_reward = 0
         episode_begin_time = rospy.Time.now()
 
         for step in range(max_step_size):
 
-            step_begin_time = rospy.Time.now()
-
+            hidden_in = hidden_out
             # choose action
-            a0 = agent.act(s0)
+            action, hidden_out = agent.act(state, last_action, hidden_in)
+
+            if step == 0:
+                ini_hidden_in = hidden_in
+                ini_hidden_out = hidden_out
+
+
+            step_begin_time = rospy.Time.now()
 
             # DEBUG
             pt = PositionTarget()
-            pt.velocity.x = (a0[0]+1)/4.0
-            pt.yaw_rate = a0[1]
+            pt.velocity.x = (action[0]+1)/4.0
+            pt.yaw_rate = action[1]
             rawCmdPub.publish(pt)
 
-            if (policy == "TD3" or policy == "DDPG"):
-                if epsilon > np.random.random():
-                    a0 = (a0 + np.random.normal(0, 0.3, size=a0.size)).clip(-1.0, 1.0)
-
-            # DEBUG
-            pt.velocity.x = (a0[0]+1)/4.0
-            pt.yaw_rate = a0[1]
+            # DEBUG (useless in training)
+            pt.velocity.x = (action[0]+1)/4.0
+            pt.yaw_rate = action[1]
             modCmdPub.publish(pt)    
 
             # agent learn
@@ -236,39 +237,43 @@ if __name__ == '__main__':
             learnThread().start()
 
             # step
-            s1, r1, done = env.step(step_time, pt.velocity.x, 0, pt.yaw_rate)        
+            next_state, reward, done = env.step(step_time, (action[0]+1)/4.0, 0, action[1])        
 
-            # DEBUG
+            # # DEBUG
             msg = State()
             msg.header.stamp = rospy.Time.now()
-            msg.cur_state = s0
-            msg.next_state = s1
+            msg.cur_state = state
+            msg.next_state = next_state
             statePub.publish(msg)
 
-            # save transition
-            agent.put(s0, a0, r1, s1, done)
+            episode_state.append(state)
+            episode_action.append(action)
+            episode_last_action.append(last_action)
+            episode_reward.append(reward)
+            episode_next_state.append(next_state)
+            episode_done.append(done) 
 
             # plot and save
-            step_rewards = np.append(step_rewards, r1)
-            writer.add_scalar("Performance/step_reward", r1, global_step=step_rewards.size-1)  
+            step_rewards = np.append(step_rewards, reward)
+            writer.add_scalar("Performance/step_reward", reward, global_step=step_rewards.size-1)  
             writer.add_scalar("DEBUG/step_time", (rospy.Time.now() - step_begin_time).to_sec(), global_step=step_rewards.size-1)  
 
             # other
-            epsilon = max(epsilon_decay*epsilon, 0.20)
-            episode_reward += r1
-            s0 = s1
+            total_reward += reward
+            state = next_state
+            last_action = action
 
             if done: break
             if rospy.is_shutdown(): break
 
-        episode_time = (rospy.Time.now() - episode_begin_time).to_sec()
-        episode_rewards = np.append(episode_rewards, episode_reward)
-        episode_times = np.append(episode_times, episode_time)
-        writer.add_scalar("Performance/episode_reward", episode_reward, global_step=episode_rewards.size-1)  
-        writer.add_scalar("Performance/episode_time", episode_time, global_step=episode_times.size-1)  
+        agent.buffer.push(ini_hidden_in, ini_hidden_out, episode_state, episode_action, episode_last_action, \
+            episode_reward, episode_next_state, episode_done)
 
-        if policy == "DDPG" or policy == "TD3":
-            print("epsilon = %f" % (epsilon))
+        episode_time = (rospy.Time.now() - episode_begin_time).to_sec()
+        episode_rewards = np.append(episode_rewards, total_reward)
+        episode_times = np.append(episode_times, episode_time)
+        writer.add_scalar("Performance/episode_reward", total_reward, global_step=episode_rewards.size-1)  
+        writer.add_scalar("Performance/episode_time", episode_time, global_step=episode_times.size-1)  
 
         if rospy.is_shutdown(): break
 

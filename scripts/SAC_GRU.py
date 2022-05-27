@@ -1,0 +1,296 @@
+#! /usr/bin/env python
+# coding :utf-8
+
+import os
+import numpy as np
+import copy
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+from torch.distributions import Normal
+from common.buffer import ReplayBufferLSTM
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# parameters
+state_dim = 41
+action_dim = 2
+hidden_dim = 128
+tau = 0.01
+actor_lr = 3e-4
+Q_net_lr = 3e-4
+alpha_lr = 3e-4
+discount = 0.99
+init_temperature = 0.2
+buffer_size = 20
+actor_update_frequency = 1
+seed = 1
+
+url = os.path.dirname(os.path.realpath(__file__)) + '/data/'
+
+# Set seeds
+torch.manual_seed(seed)
+np.random.seed(seed)
+
+
+class Actor(nn.Module):
+
+    def __init__(self, state_dim, action_dim, hidden_size, init_w=3e-3):
+        super(Actor, self).__init__()
+
+        self.linear1 = nn.Linear(state_dim, hidden_dim)
+        self.linear2 = nn.Linear(state_dim+action_dim, hidden_dim)
+        self.lstm1 = nn.GRU(hidden_dim, hidden_size, 1, batch_first=True)
+        self.linear3 = nn.Linear(2*hidden_dim, hidden_dim)
+        self.linear4 = nn.Linear(hidden_dim, hidden_dim)
+
+        self.mu_head = nn.Linear(hidden_dim, action_dim)
+        self.mu_head.weight.data.uniform_(-init_w, init_w)
+        self.mu_head.bias.data.uniform_(-init_w, init_w)
+
+        self.log_std_head = nn.Linear(hidden_dim, action_dim)
+        self.log_std_head.weight.data.uniform_(-init_w, init_w)
+        self.log_std_head.bias.data.uniform_(-init_w, init_w)
+
+        self.min_log_std = -20
+        self.max_log_std = 2
+
+
+    def forward(self, state, last_action, hidden_in):
+        """ 
+        state shape: (batch_size, sequence_length, state_dim)
+        output shape: (batch_size, sequence_length, action_dim)
+        """
+
+        self.lstm1.flatten_parameters()
+
+        # branch1
+        fc_branch = F.relu(self.linear1(state))
+        # branch2
+        lstm_branch = torch.cat([state, last_action], -1)
+        lstm_branch = F.relu(self.linear2(lstm_branch))
+        lstm_branch, lstm_hidden = self.lstm1(lstm_branch, hidden_in)
+        # merged
+        merged_branch=torch.cat([fc_branch, lstm_branch], -1) 
+        x = F.relu(self.linear3(merged_branch))
+        x = F.relu(self.linear4(x))
+
+        mu = self.mu_head(x)
+        log_std = self.log_std_head(x)
+        log_std = torch.clamp(log_std, self.min_log_std, self.max_log_std)
+        std = log_std.exp()
+
+        return mu, std, lstm_hidden
+
+
+    def evaluate(self, state, last_action, hidden_in):
+        mu, std, hidden_out = self.forward(state, last_action, hidden_in)
+        dist = Normal(0, 1)
+        z = dist.sample(mu.shape).to(device)
+        # reparameterization trick
+        action = torch.tanh(mu + std*z)
+        log_prob = dist.log_prob(z).sum(dim=-1, keepdim=True)
+        log_prob -= (2*(np.log(2) - action - F.softplus(-2* action))).sum(axis=2, keepdim=True)
+
+        return action, log_prob, z, mu, std, hidden_out
+        
+
+class Q_net(nn.Module):
+
+    def __init__(self, state_dim, action_dim, hidden_dim, init_w=3e-3):
+        super(Q_net, self).__init__()
+
+        # Q1 architecture
+        self.linear1 = nn.Linear(state_dim + action_dim, hidden_dim)
+        self.linear2 = nn.Linear(state_dim + action_dim, hidden_dim)
+        self.lstm1 = nn.GRU(hidden_dim, hidden_dim, batch_first=True)
+        self.linear3 = nn.Linear(2*hidden_dim, hidden_dim)
+        self.linear4 = nn.Linear(hidden_dim, 1)
+        self.linear4.weight.data.uniform_(-init_w, init_w)
+        self.linear4.bias.data.uniform_(-init_w, init_w)
+
+        # Q2 architecture
+        self.linear5 = nn.Linear(state_dim + action_dim, hidden_dim)
+        self.linear6 = nn.Linear(state_dim + action_dim, hidden_dim)
+        self.lstm2 = nn.GRU(hidden_dim, hidden_dim, batch_first=True)
+        self.linear7 = nn.Linear(2*hidden_dim, hidden_dim)
+        self.linear8 = nn.Linear(hidden_dim, 1)
+        self.linear8.weight.data.uniform_(-init_w, init_w)
+        self.linear8.bias.data.uniform_(-init_w, init_w)
+
+    def forward(self, state, action, last_action, hidden_in):
+        """ 
+        state shape: (batch_size, sequence_length, state_dim)
+        output shape: (batch_size, sequence_length, 1)
+        """
+
+        self.lstm1.flatten_parameters()
+        self.lstm2.flatten_parameters()
+
+        fc_branch = torch.cat([state, action], -1)
+        lstm_branch = torch.cat([state, last_action], -1) 
+
+        # Q1
+        fc_branch_Q1 = F.relu(self.linear1(fc_branch))
+        lstm_branch_Q1 = F.relu(self.linear2(lstm_branch))
+        lstm_branch_Q1, _ = self.lstm1(lstm_branch_Q1, hidden_in) 
+        merged_branch_Q1 = torch.cat([fc_branch_Q1, lstm_branch_Q1], -1) 
+        q1 = F.relu(self.linear3(merged_branch_Q1))
+        q1 = self.linear4(q1)
+
+        # Q2
+        fc_branch_Q2 = F.relu(self.linear5(fc_branch))
+        lstm_branch_Q2 = F.relu(self.linear6(lstm_branch))
+        lstm_branch_Q2, _ = self.lstm2(lstm_branch_Q2, hidden_in)       
+        merged_branch_Q2 = torch.cat([fc_branch_Q2, lstm_branch_Q2], -1) 
+        q2 = F.relu(self.linear7(merged_branch_Q2))
+        q2 = self.linear8(q2)
+
+        return q1, q2
+
+
+class SAC_GRU:
+
+    def __init__(self, **kwargs):
+
+        # load params
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+        self.actor = Actor(state_dim, action_dim, hidden_dim).to(device)
+        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=actor_lr)
+
+        self.Q_net = Q_net(state_dim, action_dim, hidden_dim).to(device)
+        self.Q_net_target = copy.deepcopy(self.Q_net)
+        self.Q_net_optimizer = optim.Adam(self.Q_net.parameters(), lr=Q_net_lr)
+
+        self.log_alpha = torch.tensor(np.log(init_temperature)).to(device)
+        self.log_alpha.requires_grad = True
+        self.log_alpha_optimizer = optim.Adam([self.log_alpha], lr=alpha_lr)
+
+        # set target entropy to -|A|
+        self.target_entropy = -action_dim
+
+        self.buffer = ReplayBufferLSTM(buffer_size, "SAC_GRU")
+        
+        self.actor_loss = 0
+        self.critic_loss = 0
+        self.alpha_loss = 0
+
+        self.num_training = 0
+
+        self.load()
+
+
+    @property
+    def alpha(self):
+        return self.log_alpha.exp()
+
+    def act(self, state, last_action, hidden_in):
+        state = torch.FloatTensor(state).unsqueeze(0).unsqueeze(0).to(device)  # increase 2 dims to match with training data
+        last_action = torch.FloatTensor(last_action).unsqueeze(0).unsqueeze(0).to(device)
+        with torch.no_grad():
+            mu, std, hidden_out = self.actor(state, last_action, hidden_in)
+            dist = Normal(mu, std)
+            z = dist.sample()
+            action = torch.tanh(z)
+        return action[0][0].cpu().numpy(), hidden_out
+
+
+    def update(self):
+
+        if not self.buffer.sample_available():
+            return
+
+        # state = (state - self.buffer.state_mean())/(self.buffer.state_std() + 1e-7)
+        # next_state = (next_state - self.buffer.state_mean())/(self.buffer.state_std() + 1e-6)
+        # reward = reward / (self.buffer.reward_std() + 1e-6)
+
+        hidden_in, hidden_out, state, action, last_action, reward, next_state, done = self.buffer.sampleSingle() # sample one episode
+
+        # alpha
+        current_Q1, current_Q2 = self.Q_net(state, action, last_action, hidden_in)
+        new_action, log_prob, _, _, _, _ = self.actor.evaluate(state, last_action, hidden_in)
+        new_next_action, next_log_prob, _, _, _, _ = self.actor.evaluate(next_state, action, hidden_out)
+
+        if self.num_training % actor_update_frequency == 0 and self.fix_actor_flag == False:
+
+            alpha_loss = -(self.alpha * (log_prob + self.target_entropy).detach()).mean()
+            self.alpha_loss = alpha_loss.item()
+
+            self.log_alpha_optimizer.zero_grad()
+            alpha_loss.backward()
+            nn.utils.clip_grad_norm_(self.log_alpha, 0.5)
+            self.log_alpha_optimizer.step()
+
+        # Q_net
+        target_Q1, target_Q2 = self.Q_net_target(next_state, new_next_action, action, hidden_out)
+        target_V = torch.min(target_Q1, target_Q2) - self.alpha.detach()*next_log_prob
+        target_Q = reward + (1 - done) * discount * target_V
+        Q_net_loss = F.mse_loss(current_Q1, target_Q) + F.mse_loss(current_Q2, target_Q)
+        self.critic_loss = Q_net_loss.item()
+
+        self.Q_net_optimizer.zero_grad()
+        Q_net_loss.backward()
+        nn.utils.clip_grad_norm_(self.Q_net.parameters(), 0.5)
+        self.Q_net_optimizer.step()
+
+        # actor
+        if self.num_training % actor_update_frequency == 0 and self.fix_actor_flag == False:
+
+                new_Q1, new_Q2 = self.Q_net(state, new_action, last_action, hidden_in)
+                new_Q = torch.min(new_Q1, new_Q2)
+                actor_loss = (self.alpha * log_prob - new_Q).mean()
+                self.actor_loss = actor_loss.item()
+
+                self.actor_optimizer.zero_grad()
+                actor_loss.backward()
+                nn.utils.clip_grad_norm_(self.actor.parameters(), 0.5)
+                self.actor_optimizer.step()
+
+        # soft update
+        for target_param, param in zip(self.Q_net_target.parameters(), self.Q_net.parameters()):
+            target_param.data.copy_(target_param * (1 - tau) + param * tau)
+    
+
+        self.num_training += 1
+
+
+    def save(self):
+        torch.save(self.Q_net.state_dict(), url + "SAC_GRU_critic.pth")
+        torch.save(self.Q_net_optimizer.state_dict(), url + "SAC_GRU_critic_optimizer.pth")
+        torch.save(self.actor.state_dict(), url + "SAC_GRU_actor.pth")
+        torch.save(self.actor_optimizer.state_dict(), url + "SAC_GRU_actor_optimizer.pth")
+        torch.save(self.log_alpha, url + "SAC_GRU_log_alpha.pth")
+        torch.save(self.log_alpha_optimizer.state_dict(), url + "SAC_GRU_log_alpha_optimizer.pth")
+        self.buffer.save()
+
+
+    def load(self):
+
+        if self.load_critic_flag == True:
+            print("Load critic model.")
+            self.Q_net.load_state_dict(torch.load(url + "SAC_GRU_critic.pth", map_location=device))
+            self.Q_net_target = copy.deepcopy(self.Q_net)
+        
+        if self.load_log_alpha_flag == True:
+            print("Load log-alpha.")
+            self.log_alpha = torch.load(url + "SAC_GRU_log_alpha.pth", map_location=device)
+            self.log_alpha.requires_grad = True
+            self.log_alpha_optimizer = optim.Adam([self.log_alpha], lr=alpha_lr)
+
+        if self.load_actor_flag == True:
+            print("Load actor model.")
+            self.actor.load_state_dict(torch.load(url + "SAC_GRU_actor.pth", map_location=device))
+            self.actor_target = copy.deepcopy(self.actor)
+
+        if self.load_optim_flag == True:
+            print("Load optimizer.")
+            self.Q_net_optimizer.load_state_dict(torch.load(url + "SAC_GRU_critic_optimizer.pth", map_location=device))
+            self.actor_optimizer.load_state_dict(torch.load(url + "SAC_GRU_actor_optimizer.pth", map_location=device))
+            self.log_alpha_optimizer.load_state_dict(torch.load(url + "SAC_GRU_log_alpha_optimizer.pth", map_location=device))
+
+        if self.load_buffer_flag == True:
+            print("Load buffer data.")
+            self.buffer.load()

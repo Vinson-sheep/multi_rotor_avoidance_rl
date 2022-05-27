@@ -63,42 +63,42 @@ class Game:
 
         # initialize world
 
-        if (game_name == "empty_7m"):
+        if (game_name == "EMPTY"):
             self.safe_space = [[0, 0], [7, 0]]
             self.safe_radius = [1.0, 0.8]
             self.target_distance = 7
             self.wall_rate = 0
             self.cylinder_num = [0, 0]
         
-        if (game_name == "train_env_7m"):
+        if (game_name == "TRAIN"):
             self.safe_space = [[0, 0], [7, 0]]
             self.safe_radius = [1.0, 0.8]
             self.target_distance = 7
             self.wall_rate = 0.8
             self.cylinder_num = [65, 150]
 
-        if (game_name == "test_env_7m_1"):
+        if (game_name == "TEST1"):
             self.safe_space = [[0, 0], [3.5, 0]]
             self.safe_radius = [1.0, 0.8]
             self.target_distance = 7
             self.wall_rate = 0.5
             self.cylinder_num = [5, 50]
 
-        if (game_name == "test_env_7m_2"):
+        if (game_name == "TEST2"):
             self.safe_space = [[0, 0], [7, 0]]
             self.safe_radius = [1.0, 0.8]
             self.target_distance = 7
             self.wall_rate = 0.8
             self.cylinder_num = [50, 100]
 
-        if (game_name == "test_env_7m_3"):
+        if (game_name == "TEST3"):
             self.safe_space = [[0, 0], [7, 0]]
             self.safe_radius = [1.0, 0.8]
             self.target_distance = 7
             self.wall_rate = 0.8
             self.cylinder_num = [100, 150]
 
-        if (game_name == "test_env_7m_4"):
+        if (game_name == "TEST4"):
             self.safe_space = [[0, 0], [7, 0]]
             self.safe_radius = [1.0, 0.8]
             self.target_distance = 7

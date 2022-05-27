@@ -7,20 +7,17 @@ from mavros_msgs.msg import PositionTarget
 from multi_rotor_avoidance_rl.msg import State
 import numpy as np
 import os
-import threading
 import pickle
-# from tensorboardX import SummaryWriter
+import torch
 
-import DDPG
-import TD3
-import SAC
-
+import SAC_LSTM
+import SAC_GRU
 
 load_progress = False
 
-policy = "SAC" # DDPG or TD3 or SAC
+policy = "SAC_SLAM" # SAC_LSTM / SAC_GRU
 filter = "NONE" # NONE / MAF / FOLF
-game_name = "test_env_7m_1" # test_env_7m_<number>
+game_name = "TEST1" # EMPTY / TRAIN / TEST[1-4]
 
 # Median Average Filter
 window_size = 4
@@ -29,9 +26,10 @@ action_discount = 0.5
 
 state_dim = 41
 action_dim = 2
+hidden_dim = 128
 
 max_episode = 500
-max_step_size = 300
+max_step_size = 200
 
 # variable
 episode_begin = 0
@@ -41,14 +39,11 @@ agent = None
 
 # file url
 url = os.path.dirname(os.path.realpath(__file__)) + '/data/'
-# writer = SummaryWriter(url + '../../log')
 
 step_time = 0.2
 
 # initialize agent
 kwargs = {
-    'state_dim': state_dim,
-    'action_dim': action_dim,
     'load_buffer_flag': False,
     'load_actor_flag': True,
     'load_critic_flag': False,
@@ -58,12 +53,12 @@ kwargs = {
     'use_priority': False
 }
 
-if (policy == "TD3"):
-    agent = TD3.TD3(**kwargs)
-if (policy == "DDPG"):
-    agent = DDPG.DDPG(**kwargs)
-if (policy == "SAC"):
-    agent = SAC.SAC(**kwargs)
+
+if (policy == "SAC_LSTM"):
+    agent = SAC_LSTM.SAC_LSTM(**kwargs)
+if (policy == "SAC_GRU"):
+    agent = SAC_GRU.SAC_GRU(**kwargs)
+
 
 def save(episode, success_num, crash_num):
     save_file = open(url + 'temp_test.bin',"wb")
@@ -110,10 +105,10 @@ if __name__ == '__main__':
         print("=====================================")
 
         if episode == episode_begin:
-            s0 = env.start()
+            state = env.start()
             print("Start testing！")
         else:
-            s0 = env.reset()
+            state = env.reset()
 
         # filter initialize
         if (filter == "NONE"):
@@ -124,14 +119,24 @@ if __name__ == '__main__':
         if (filter == "FOLF"):
             momentum = [0.0]*action_dim
 
+        if (policy == "SAC_LSTM"):
+            hidden_out = (torch.zeros([1, 1, hidden_dim], dtype=torch.float).cuda(), \
+                torch.zeros([1, 1, hidden_dim], dtype=torch.float).cuda())  # initialize hidden state for lstm, (hidden, cell), each is (batch, layer, dim) 
+        if (policy == "SAC_GRU"):
+            hidden_out = torch.zeros([1, 1, hidden_dim], dtype=torch.float).cuda()
+
+        last_action = 2*np.random.rand(action_dim) - 1
+
         for step in range(max_step_size):
 
-            a0 = agent.act(s0)
+            hidden_in = hidden_out
+            # choose action
+            action, hidden_out = agent.act(state, last_action, hidden_in)
 
             # DEBUG
             pt = PositionTarget()
-            pt.velocity.x = (a0[0]+1)/4.0
-            pt.yaw_rate = a0[1]
+            pt.velocity.x = (action[0]+1)/4.0
+            pt.yaw_rate = action[1]
             rawCmdPub.publish(pt)
 
             if (filter == "NONE"):
@@ -141,9 +146,9 @@ if __name__ == '__main__':
             if (filter == "MAF"):
                 # update queue
                 window_vx.pop(0)
-                window_vx.append(a0[0])
+                window_vx.append(action[0])
                 window_vyaw.pop(0)
-                window_vyaw.append(a0[1])
+                window_vyaw.append(action[1])
                 # copy data and sort
                 window_vyaw_copy = window_vyaw[:]
                 window_vyaw_copy.sort()
@@ -154,8 +159,8 @@ if __name__ == '__main__':
                 pt.yaw_rate = np.mean(window_vyaw_copy[1:-1])
 
             if (filter == "FOLF"):
-                momentum[0] = (1-action_discount)*momentum[0] + action_discount*a0[0]
-                momentum[1] = (1-action_discount)*momentum[1] + action_discount*a0[1]
+                momentum[0] = (1-action_discount)*momentum[0] + action_discount*action[0]
+                momentum[1] = (1-action_discount)*momentum[1] + action_discount*action[1]
                 # DEBUG
                 pt.velocity.x = (momentum[0]+1)/4.0
                 pt.yaw_rate = momentum[1]
@@ -164,16 +169,17 @@ if __name__ == '__main__':
             modCmdPub.publish(pt)
 
             # step
-            s1, _, done = env.step(step_time, pt.velocity.x, 0, pt.yaw_rate)
+            next_state, _, done = env.step(step_time, pt.velocity.x, 0, pt.yaw_rate)
 
             # DEBUG
             msg = State()
             msg.header.stamp = rospy.Time.now()
-            msg.cur_state = s0
-            msg.next_state = s1
+            msg.cur_state = state
+            msg.next_state = next_state
             statePub.publish(msg)
 
-            s0 = s1
+            state = next_state
+            last_action = action
 
             # check result
             crash_indicator, _, _ = env.is_crashed()
