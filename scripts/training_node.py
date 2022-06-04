@@ -15,11 +15,21 @@ import SAC_LSTM
 import SAC_GRU
 
 load_progress = False
-load_buffer_flag = False
-load_actor_flag = False
-load_critic_flag = False
-load_log_alpha_flag = False
-load_optim_flag = False
+
+if load_progress:
+    load_progress = True
+    load_buffer_flag = True
+    load_actor_flag = True
+    load_critic_flag = True
+    load_log_alpha_flag = True
+    load_optim_flag = True
+else:
+    load_progress = False
+    load_buffer_flag = False
+    load_actor_flag = False
+    load_critic_flag = False
+    load_log_alpha_flag = False
+    load_optim_flag = False
 
 fix_actor_flag = False
 

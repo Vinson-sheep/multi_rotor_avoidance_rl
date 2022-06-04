@@ -1,4 +1,4 @@
-# Multi-Rotor Obstacle Avoidance : Reinfocement Learning 4.0.0
+# Multi-Rotor Obstacle Avoidance : Reinfocement Learning (RNN version)
 
 ## An DRL-based path planning framework for real quadrotor
 
@@ -9,8 +9,8 @@
 [video](https://space.bilibili.com/35680677?spm_id_from=333.1007.0.0)
 
 ## Latest Update
-1. complete paper
-2. improve documentation
+1. Add LSTM/GRU-SAC
+2. Fix README.md bug
 
 ### **1. feature**
 

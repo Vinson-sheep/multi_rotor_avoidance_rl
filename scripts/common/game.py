@@ -338,21 +338,33 @@ class Game:
                 - crash reward
                 - relative laser index (to check the direction)
         """
-        self.laser_crashed_flag = False
-        self.laser_crashed_reward = 0
         self.crash_index = -1
+        self.min_laser = self.scan.range_max + 1
 
+        # find the min
         for i in range(len(self.scan.ranges)):
-            if self.scan.ranges[i] < 3*self.crash_limit:
-                self.laser_crashed_reward = min(-10, self.laser_crashed_reward)
-            if self.scan.ranges[i] < 2*self.crash_limit:
-                self.laser_crashed_reward = min(-25.0, self.laser_crashed_reward)
-            if self.scan.ranges[i] < self.crash_limit:
-                self.laser_crashed_reward = -100.0
-                self.laser_crashed_flag = True
+            if self.scan.ranges[i] < self.min_laser:
+                self.min_laser = self.scan.ranges[i]
                 self.crash_index = i
-                break
+
+        # whether it is crashed
+
+        self.laser_crashed_flag = False        
+
+        if self.min_laser < self.crash_limit:
+            self.laser_crashed_flag = True
+            
+        else:
+            self.crash_index = -1
+
+        # calculate crash reward
+        if self.laser_crashed_flag:
+            self.laser_crashed_reward = -100
+        else:
+            self.laser_crashed_reward = -100*math.exp((self.crash_limit - self.min_laser)/0.20)
+
         return self.laser_crashed_flag, self.laser_crashed_reward, self.crash_index
+
 
     def is_valid(self, state, action, time_step, limit=0.3):
         """
@@ -429,9 +441,8 @@ class Game:
         self.done = False
 
         # arrive reward
-        self.arrive_reward = 0
         if cur_distance < 0.4:
-            self.arrive_reward = 100
+            distance_reward = 100
             self.done = True
 
         # crash reward
@@ -441,15 +452,16 @@ class Game:
 
         # laser reward
         state = np.array(self.scan.ranges) / float(self.scan.range_max)
-        laser_reward = -1.0*np.abs(np.sum((state - 1)**4))
+        laser_reward = -2.0*np.abs(np.sum((state - 1)**4))
+        # laser_reward = 0
 
         # linear punish reward (abandon)
-        self.linear_punish_reward_x = 0
+        linear_punish_reward_x = 0
         # if self.body_v.twist.linear.x < 0.1:
         #     self.linear_punish_reward_x = -1
 
         # angular punish reward (abandon)
-        self.angular_punish_reward = 0
+        angular_punish_reward = 0
         # if abs(self.body_v.twist.angular.z) > 0.4:
         #     self.angular_punish_reward = -1
         # elif abs(self.body_v.twist.angular.z) > 0.7:
@@ -468,9 +480,8 @@ class Game:
             # right_turning_reward = 0.3*abs(self.body_v.twist.angular.z)
 
         total_reward = distance_reward \
-                        + self.arrive_reward \
-                        + crash_reward \
                         + laser_reward \
+                        + crash_reward \
                         + self.step_punish_reward \
                         + self.acc_x_punish_reward \
                         + self.acc_yaw_punish_reward
@@ -478,15 +489,11 @@ class Game:
         msg = Reward()
         msg.header.stamp = rospy.Time.now()
         msg.distance_reward = distance_reward
-        msg.arrive_reward = self.arrive_reward
-        msg.crash_reward = crash_reward
         msg.laser_reward = laser_reward
-        msg.linear_punish_reward = self.linear_punish_reward_x
-        msg.angular_punish_reward = self.angular_punish_reward
+        msg.crash_reward = crash_reward
         msg.step_punish_reward = self.step_punish_reward
         msg.acc_x_punish_reward = self.acc_x_punish_reward
         msg.acc_yaw_punish_reward = self.acc_yaw_punish_reward
-        msg.right_turning_reward = right_turning_reward
         msg.total_reward = total_reward
         
         self.rewardPub.publish(msg)
@@ -494,12 +501,10 @@ class Game:
         self.hold_able = True
 
         # out of limit
-        if self.pose.position.x < -10 or self.pose.position.x > 12:
-            self.done = True
-        if self.pose.position.y < -10 or self.pose.position.y > 10:
+        if cur_distance > 10:
             self.done = True
 
-        return self.cur_state(), total_reward/20.0, self.done
+        return self.cur_state(), total_reward/23.0, self.done
 
 
     def recovery(self, time=1):

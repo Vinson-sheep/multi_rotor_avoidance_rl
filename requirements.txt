@@ -8,3 +8,9 @@ scipy
 pyyaml
 rospkg
 future
+jinja2
+cerberus 
+pyulog==0.7.0 
+toml 
+pyquaternion 
+empy

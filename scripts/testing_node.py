@@ -15,7 +15,7 @@ import SAC_GRU
 
 load_progress = False
 
-policy = "SAC_SLAM" # SAC_LSTM / SAC_GRU
+policy = "SAC_LSTM" # SAC_LSTM / SAC_GRU
 filter = "NONE" # NONE / MAF / FOLF
 game_name = "TEST1" # EMPTY / TRAIN / TEST[1-4]
 

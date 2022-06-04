@@ -162,10 +162,8 @@ catkin_install_python(PROGRAMS
   test/var_calculate.py
   test/var_collect.py
   test/reboot.py
-  # test/embedding/embedding_data_collect.py
   scripts/testing_node.py
   scripts/training_node.py
-  # scripts/random_striking.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

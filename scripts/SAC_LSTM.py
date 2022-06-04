@@ -20,10 +20,10 @@ hidden_dim = 128
 tau = 0.01
 actor_lr = 3e-4
 Q_net_lr = 3e-4
-alpha_lr = 3e-4
+alpha_lr = 1e-4
 discount = 0.99
 init_temperature = 0.2
-buffer_size = 20
+buffer_size = 50
 actor_update_frequency = 1
 seed = 1
 
