@@ -5,8 +5,10 @@
 ![](./docs/falco_mask.jpg) 
 ![](./docs/net_flow_2.jpg)
 
+<p style="text-align: center;">
+<img src="./docs/demo.gif" alt="demo" width="800px" />
 
-[video](https://space.bilibili.com/35680677?spm_id_from=333.1007.0.0)
+Video: [Bilibili](https://www.bilibili.com/video/BV1E34y1L73D?spm_id_from=333.999.0.0)
 
 ## Latest Update
 1. complete paper
