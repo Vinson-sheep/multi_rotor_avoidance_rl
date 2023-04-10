@@ -9,7 +9,23 @@
 <img src="./docs/demo.gif" alt="demo" width="800px" />
 
 Video: [Bilibili](https://www.bilibili.com/video/BV1E34y1L73D?spm_id_from=333.999.0.0)
-
+  
+Paper: [DRL-based Path Planner and its Application in Real Quadrotor with LIDAR](https://link.springer.com/article/10.1007/s10846-023-01819-0#citeas)
+  
+Cite:
+```
+@article{yang2023drl,
+  title={DRL-based Path Planner and its Application in Real Quadrotor with LIDAR},
+  author={Yang, Yongsheng and Hou, Zhiwei and Chen, Hongbo and Lu, Peng},
+  journal={Journal of Intelligent \& Robotic Systems},
+  volume={107},
+  number={3},
+  pages={38},
+  year={2023},
+  publisher={Springer}
+}
+```
+  
 ## Latest Update
 1. complete paper
 2. improve documentation
