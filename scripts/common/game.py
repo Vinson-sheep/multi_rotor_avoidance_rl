@@ -78,7 +78,7 @@ class Game:
             self.cylinder_num = [65, 150]
 
         if (game_name == "test_env_7m_1"):
-            self.safe_space = [[0, 0], [3.5, 0]]
+            self.safe_space = [[0, 0], [7, 0]]
             self.safe_radius = [1.0, 0.8]
             self.target_distance = 7
             self.wall_rate = 0.5
