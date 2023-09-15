@@ -14,12 +14,12 @@ import DDPG
 import TD3
 import SAC
 
-load_progress = True
-load_buffer_flag = True
-load_actor_flag = True
-load_critic_flag = True
-load_log_alpha_flag = True
-load_optim_flag = True
+load_progress = False
+load_buffer_flag = False
+load_actor_flag = False
+load_critic_flag = False
+load_log_alpha_flag = False
+load_optim_flag = False
 
 fix_actor_flag = False
 use_priority = True
